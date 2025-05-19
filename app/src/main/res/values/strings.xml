@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Sazon</string>
+    <string name="sazonlogo">sazonLogo</string>
+    <string name="ingresar_como_invitado">Ingresar como invitado</string>
+    <string name="nombre_de_usuario">Nombre de usuario</string>
+    <string name="contrasena">Contraseña</string>
+    <string name="iniciar_sesion">Iniciar sesión</string>
+</resources>
