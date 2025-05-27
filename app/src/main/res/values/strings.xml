@@ -5,4 +5,6 @@
     <string name="nombre_de_usuario">Nombre de usuario</string>
     <string name="contrasena">Contraseña</string>
     <string name="iniciar_sesion">Iniciar sesión</string>
+    <string name="title_activity_loader">LoaderActivity</string>
+    <string name="title_activity_login">LoginActivity</string>
 </resources>
