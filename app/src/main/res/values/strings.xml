@@ -7,4 +7,5 @@
     <string name="iniciar_sesion">Iniciar sesión</string>
     <string name="title_activity_loader">LoaderActivity</string>
     <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_home">HomeActivity</string>
 </resources>

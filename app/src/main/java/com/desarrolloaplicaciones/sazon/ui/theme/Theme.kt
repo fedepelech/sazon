@@ -9,28 +9,37 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Typography
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = SazonPrimary,
+    onPrimary = Color.White,
+    secondary = SazonGreen,
+    onSecondary = Color.White,
+    background = SazonBackground,
+    onBackground = Color.White,
+    surface = SazonBackground,
+    onSurface = Color.White,
+    error = SazonError,
+    onError = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = SazonPrimary,
     onPrimary = Color.White,
+    secondary = SazonGreen,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = SazonBackground,
+    onBackground = SazonRed,
+    surface = SazonBackground,
+    onSurface = Color.Black,
+    error = SazonError,
+    onError = Color.White
 )
 
 @Composable
@@ -52,7 +61,58 @@ fun SazonTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = Typography(
+            displayLarge = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 57.sp
+            ),
+            displayMedium = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 45.sp
+            ),
+            displaySmall = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 36.sp
+            ),
+            headlineLarge = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 32.sp
+            ),
+            bodyLarge = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp
+            ),
+            bodyMedium = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 14.sp
+            ),
+            bodySmall = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Normal,
+                fontSize = 12.sp
+            ),
+            titleLarge = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp
+            ),
+            titleMedium = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            ),
+            titleSmall = TextStyle(
+                fontFamily = Roboto,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+        ),
         content = content
     )
 }
