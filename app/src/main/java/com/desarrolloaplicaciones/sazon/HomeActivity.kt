@@ -1,6 +1,8 @@
 package com.desarrolloaplicaciones.sazon
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,24 +25,89 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
+import com.desarrolloaplicaciones.sazon.LoginActivity
+import com.desarrolloaplicaciones.sazon.data.LoginRequest
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.TokenManager
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonBackground
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import com.desarrolloaplicaciones.sazon.data.RecentRecipeReturn
 
 class HomeActivity : ComponentActivity() {
+    fun getRecipesList(onRecipesFetched: (List<Recipe>) -> Unit) {
+        val retrofit = RetrofitServiceFactory.makeRetrofitService()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = retrofit.getRecentRecipes()
+                withContext(Dispatchers.Main) {
+                    if (response.isNotEmpty()) {
+                        val recipes = response.map { recipeResponse ->
+                            Recipe(
+                                id = recipeResponse.id,
+                                nombre = recipeResponse.nombre,
+                                imageRes = R.drawable.recipe1,
+                                createdAt = recipeResponse.createdAt
+                            )
+                        }
+                        onRecipesFetched(recipes)
+                    } else {
+                        Toast.makeText(
+                            this@HomeActivity, // Ahora funciona correctamente
+                            "No se encontraron recetas.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (e is retrofit2.HttpException && e.code() >= 400) {
+                        Toast.makeText(
+                            this@HomeActivity, // Contexto accesible
+                            "Error al cargar las recetas: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@HomeActivity,
+                            "Error de red: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Se valida si esta autenticado
+        var isAuthenticated = if (TokenManager.getAccessToken().isNullOrEmpty()) false else true
+
+
+
         setContent {
             Scaffold(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(SazonBackground),
-                content = {
-                    innerPadding -> RecipesScreen(
-                        modifier = Modifier.padding(innerPadding).background(SazonBackground)
+                content = { innerPadding ->
+                    HomeScreen(
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .background(SazonBackground),
+                        isAuthenticated = isAuthenticated,
+                        activity = this@HomeActivity // Pasamos la referencia de la actividad
                     )
                 }
             )
@@ -50,15 +117,32 @@ class HomeActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipesScreen(
-    modifier: Modifier
+fun HomeScreen(
+    modifier: Modifier,
+    isAuthenticated: Boolean,
+    activity: HomeActivity // Recibimos la actividad como parámetro
 ) {
+    // Estado para manejar las recetas y el loading
+    var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // LaunchedEffect para cargar las recetas al iniciar la pantalla
+    LaunchedEffect(Unit) {
+        activity.getRecipesList { fetchedRecipes ->
+            recipes = fetchedRecipes
+            isLoading = false
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Row(
-                        modifier = Modifier.fillMaxWidth().background(SazonBackground),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(SazonBackground),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -88,7 +172,7 @@ fun RecipesScreen(
             )
         },
         bottomBar = {
-            BottomNavigationBar()
+            BottomNavigationBar(isAuthenticated)
         }
     ) { paddingValues ->
         LazyColumn(
@@ -111,8 +195,38 @@ fun RecipesScreen(
                 FilterSection()
             }
 
-            items(getRecipesList()) { recipe ->
-                RecipeCard(recipe = recipe)
+            // Mostrar loading, error o las recetas
+            if (isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF4CAF50)
+                        )
+                    }
+                }
+            } else if (errorMessage != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                    ) {
+                        Text(
+                            text = errorMessage ?: "Error desconocido",
+                            modifier = Modifier.padding(16.dp),
+                            color = Color(0xFFD32F2F)
+                        )
+                    }
+                }
+            } else {
+                // Mostrar las recetas cargadas
+                items(recipes) { recipe ->
+                    RecipeCard(recipe = recipe)
+                }
             }
 
             item {
@@ -238,7 +352,7 @@ fun RecipeCard(recipe: Recipe) {
                     .padding(16.dp)
             ) {
                 Text(
-                    text = recipe.title,
+                    text = recipe.nombre,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
@@ -246,7 +360,8 @@ fun RecipeCard(recipe: Recipe) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Estrellas de puntuación
+                // Estrellas de puntuación (comentadas por ahora)
+                /*
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -259,13 +374,14 @@ fun RecipeCard(recipe: Recipe) {
                         )
                     }
                 }
+                */
             }
         }
     }
 }
 
 @Composable
-fun BottomNavigationBar() {
+fun BottomNavigationBar(isAuthenticated: Boolean) {
     BottomAppBar(
         containerColor = Color.White,
         contentColor = Color.Gray,
@@ -307,20 +423,27 @@ fun BottomNavigationBar() {
                 )
             }
 
-            // Botón Perfil
-            IconButton(
-                onClick = { /* Navegación Perfil */ },
-                modifier = Modifier.size(48.dp)
+            // Botón Perfil o espacio vacío
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Perfil",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
+                if (isAuthenticated) {
+                    IconButton(
+                        onClick = { /* Navegación Perfil */ },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Perfil",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -328,60 +451,20 @@ fun BottomNavigationBar() {
 }
 
 data class Recipe(
-    val id: Int,
-    val title: String,
+    val id: String,
+    val nombre: String,
     val imageRes: Int,
-    val rating: Int, // De 0 a 5 estrellas
-    val description: String = "",
-    val cookTime: String = ""
+    val createdAt: String
 )
-
-// Función para obtener datos de ejemplo
-fun getRecipesList(): List<Recipe> {
-    return listOf(
-        Recipe(
-            id = 1,
-            title = "Omelette simple",
-            imageRes = R.drawable.recipe1, // Placeholder
-            rating = 5,
-            description = "Delicioso omelette básico perfecto para el desayuno"
-        ),
-        Recipe(
-            id = 2,
-            title = "Omelette con espinaca",
-            imageRes = R.drawable.recipe1, // Placeholder
-            rating = 4,
-            description = "Omelette nutritivo con espinacas frescas"
-        ),
-        Recipe(
-            id = 3,
-            title = "Omelette de queso",
-            imageRes = R.drawable.recipe1, // Placeholder
-            rating = 5,
-            description = "Cremoso omelette con queso derretido"
-        ),
-        Recipe(
-            id = 4,
-            title = "Omelette de champiñones",
-            imageRes = R.drawable.recipe1, // Placeholder
-            rating = 4,
-            description = "Sabroso omelette con champiñones salteados"
-        ),
-        Recipe(
-            id = 5,
-            title = "Omelette mixto",
-            imageRes = R.drawable.recipe1, // Placeholder
-            rating = 5,
-            description = "Omelette completo con varios ingredientes"
-        )
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
 @Composable
-fun PreviewRecipesScreen() {
-    RecipesScreen(
-        modifier = Modifier
-    )
+fun PreviewHomeScreen() {
+    // Para el preview, creamos una actividad mock
+    // HomeScreen(
+    //     modifier = Modifier,
+    //     isAuthenticated = true,
+    //     activity = // No se puede mostrar en preview
+    // )
 }

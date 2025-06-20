@@ -1,10 +1,6 @@
 package com.desarrolloaplicaciones.sazon
 
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.MediaType.Companion.toMediaType
-
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -33,72 +29,97 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
+import com.desarrolloaplicaciones.sazon.data.LoginRequest
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.TokenManager
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonBackground
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonPrimary
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class LoginActivity : ComponentActivity() {
-    private val client = OkHttpClient()
+    private var isLoading = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        TokenManager.removeToken()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // SazonTheme { // Se comenta para evitar que el tema del dispositivo sobreescriba el background
-                // Asegura que el Scaffold y todo su contenido tengan el SazonBackground
-                Scaffold(modifier = Modifier.fillMaxSize().background(SazonBackground)) { innerPadding ->
-                    LoginScreen(
-                        onLoginClicked = { email, password -> login(email, password) },
-                        onGuestClicked = { /* Implementa la acción de invitado aquí */ },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            // }
+            Scaffold(modifier = Modifier
+                .fillMaxSize()
+                .background(SazonBackground)) { innerPadding ->
+                LoginScreen(
+                    onLoginClicked = { email, password -> login(email, password) },
+                    onGuestClicked = {
+                        val intent = Intent(this@LoginActivity, HomeActivity::class.java)
+                        startActivity(intent);
+                        finish();
+                    },
+                    modifier = Modifier.padding(innerPadding),
+                    isLoading = isLoading
+                )
+            }
         }
     }
 
-    private fun login(email: String, pass: String) {
+    fun login(email: String, pass: String) {
+        val retrofit = RetrofitServiceFactory.makeRetrofitService();
         if (email.isBlank() || pass.isBlank()) {
             Toast.makeText(this, "Por favor, ingrese su email y contraseña", Toast.LENGTH_SHORT).show();
             return
         }
 
-        val url = "http://192.168.0.62:3000/api/login"
-        val json = """
-        {
-            "email": "$email",
-            "password": "$pass"
-        }
-        """.trimIndent()
-
-        val requestBody = json.toRequestBody("application/json".toMediaType())
-        val request = Request.Builder()
-            .url(url)
-            .post(requestBody)
-            .build()
-
+//        val json = """
+//        {
+//            "email": "$email",
+//            "password": "$pass"
+//        }
+//        """.trimIndent()
+        
+        val body = LoginRequest(email, pass);
         lifecycleScope.launch(Dispatchers.IO) {
+            isLoading.value = true
             try {
-                val response = client.newCall(request).execute()
+                val response = retrofit.login(body)
                 withContext(Dispatchers.Main) {
-                    if (response.isSuccessful) {
-                        Toast.makeText(this@LoginActivity, "Login exitoso", Toast.LENGTH_SHORT).show()
-                        // Navegar a otra pantalla o continuar el flujo
+                    isLoading.value = false
+                    if (!response.token.isNullOrEmpty()) {
+                        val intent = Intent(this@LoginActivity, HomeActivity::class.java)
+                        TokenManager.saveToken(response.token);
+                        startActivity(intent);
+                        finish();
                     } else {
                         Toast.makeText(
                             this@LoginActivity,
-                            "Login fallido: ${response.message}",
+                            "Login fallido: ${response}",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LoginActivity, "Error de red: ${e.message}", Toast.LENGTH_SHORT).show()
+                    isLoading.value = false
+                    if (e is retrofit2.HttpException && e.code() >= 400) {
+                        Toast.makeText(
+                            this@LoginActivity,
+                            "Login fallido: email o contraseña incorrecta",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@LoginActivity,
+                            "Error de red: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }
@@ -110,7 +131,8 @@ class LoginActivity : ComponentActivity() {
 fun LoginScreen(
     onLoginClicked: (String, String) -> Unit,
     onGuestClicked: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoading: State<Boolean>,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -136,20 +158,33 @@ fun LoginScreen(
             contentDescription = stringResource(id = R.string.sazonlogo),
             modifier = Modifier
                 .size(300.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 32.dp)
+                .background(MaterialTheme.colorScheme.background),
             contentScale = ContentScale.Fit
         )
 
-        Button(
-            onClick = onGuestClicked,
-            modifier = Modifier
-                .width(200.dp)
-                .height(30.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = SazonPrimary
+        if (isLoading.value) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .size(50.dp),
+                color = SazonPrimary
             )
-        ) {
-            Text(text = stringResource(id = R.string.ingresar_como_invitado), style = MaterialTheme.typography.labelMedium,)
+        } else {
+            Button(
+                onClick = onGuestClicked,
+                modifier = Modifier
+                    .width(200.dp)
+                    .height(30.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SazonPrimary
+                )
+            ) {
+                Text(
+                    text = stringResource(id = R.string.ingresar_como_invitado),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
         }
 
         OutlinedTextField(
@@ -203,7 +238,8 @@ fun LoginScreen(
         )
 
         Button(
-            onClick = { onLoginClicked(email, password) },
+//            onClick = { onLoginClicked(email, password) },
+            onClick = { onLoginClicked("fede@ejemplo.com", "12345") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 35.dp),
@@ -224,10 +260,12 @@ fun LoginScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
+    val isLoading = remember { mutableStateOf(false) }
     SazonTheme {
         LoginScreen(
             onLoginClicked = { _, _ -> /* No action needed for preview */ },
-            onGuestClicked = {}
+            onGuestClicked = {},
+            isLoading = isLoading
         )
     }
 }
