@@ -13,6 +13,31 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.Text
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.*
+import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
+import kotlinx.coroutines.launch
+import androidx.core.view.WindowCompat
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+
+class ChangePassActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+
+        setContent {
+            ChangePassScreen()
+        }
+    }
+}
 
 
 
@@ -82,8 +107,8 @@ fun ChangePassBody(){
                 }
             }
 
-            CustomTextField(label = "Nueva Contraseña", value = "Ingrese la nueva contraseña")
-            CustomTextField(label = "Nueva Contraseña", value = "Ingrese la nueva contraseña")
+            CustomTextField(label = "Nueva Contraseña", value = "Ingrese la nueva contraseña", enabled = true)
+            CustomTextField(label = "Nueva Contraseña", value = "Ingrese la nueva contraseña", enabled = true)
 
 
             Spacer(modifier = Modifier.height(16.dp))

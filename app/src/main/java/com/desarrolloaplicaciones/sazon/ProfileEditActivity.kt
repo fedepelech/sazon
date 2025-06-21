@@ -17,6 +17,31 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.*
+import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
+import kotlinx.coroutines.launch
+import androidx.core.view.WindowCompat
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+
+class ProfileEditActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+
+        setContent {
+            ProfileEditScreen()
+        }
+    }
+}
 
 
 
@@ -26,7 +51,7 @@ fun ProfileEditScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFDF5ED)), // Fondo crema claro
+            .background(Color(0xFFFDF5ED)),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column (horizontalAlignment = Alignment.CenterHorizontally){
@@ -45,6 +70,7 @@ fun ProfileEditScreen() {
 
 @Composable
 fun ProfileEditBodySection() {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .background(Color(0xFFFDF5ED))
@@ -57,15 +83,16 @@ fun ProfileEditBodySection() {
             Text("Mi cuenta", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD84F2A))
             Spacer(modifier = Modifier.height(24.dp))
 
-            CustomTextField(label = "Nombre", value = "Lucas Castro")
-            CustomTextField(label = "Email", value = "lhlcastro@gmail.com", keyboardType = KeyboardType.Email)
-            CustomTextField(label = "Alias", value = "@lcastro")
+            CustomTextField(label = "Nombre", value = "Lucas Castro", enabled = false)
+            CustomTextField(label = "Email", value = "lhlcastro@gmail.com", keyboardType = KeyboardType.Email, enabled = false)
+            CustomTextField(label = "Alias", value = "@lcastro", enabled = false)
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = "**********",
                     onValueChange = {},
+                    enabled = false,
                     label = { Text("Contraseña") },
                     modifier = Modifier
                         .weight(1f)
@@ -73,16 +100,16 @@ fun ProfileEditBodySection() {
                     singleLine = true
                 )
                 Button(
-                    onClick = { /* TODO: Acción editar */ },
+                    onClick = { context.startActivity(Intent(context, ChangePassActivity::class.java)) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A))
                 ) {
                     Text("Editar", color = Color.White)
                 }
             }
 
-            CustomTextField(label = "Fecha de nacimiento", value = "10/07/1998", keyboardType = KeyboardType.Number)
-            CustomTextField(label = "Provincia", value = "Santa Fe")
-            CustomTextField(label = "Localidad", value = "Rosario")
+            CustomTextField(label = "Fecha de nacimiento", value = "10/07/1998", keyboardType = KeyboardType.Number, enabled = false)
+            CustomTextField(label = "Provincia", value = "Santa Fe", enabled = false)
+            CustomTextField(label = "Localidad", value = "Rosario", enabled = false)
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -91,11 +118,12 @@ fun ProfileEditBodySection() {
 
 
 @Composable
-fun CustomTextField(label: String, value: String, keyboardType: KeyboardType = KeyboardType.Text) {
+fun CustomTextField(label: String, value: String, keyboardType: KeyboardType = KeyboardType.Text, enabled: Boolean) {
     OutlinedTextField(
         value = value,
         onValueChange = {},
         label = { Text(label) },
+        enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),

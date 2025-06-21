@@ -1,6 +1,9 @@
 package com.desarrolloaplicaciones.sazon
 
 
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -18,57 +21,80 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.*
+import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
+import kotlinx.coroutines.launch
+import androidx.core.view.WindowCompat
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Scaffold
+
+class ProfileViewActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Esto habilita edge to edge, si usas esta función
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+
+        setContent {
+            ProfileViewScreen()
+        }
+    }
+}
 
 
 
 
 @Composable
-fun ProfileViewActivity() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFDF5ED)),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column (horizontalAlignment = Alignment.CenterHorizontally){
-            HeaderProfileView("Lucas", "Castro")
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Recetas de Lucas", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD84F2A))
-            Spacer(modifier = Modifier.height(24.dp))
+fun ProfileViewScreen() {
+    var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(true) {
+        scope.launch {
+            try {
+                recetas = RetrofitClient.api.obtenerRecetas()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
-        Column {
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(16.dp))
-            BottomNavigationBar()
+    }
+
+    Scaffold (bottomBar = { BottomNavigationBar() } ) { innerPadding ->
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFFDF5ED))
+                .padding(innerPadding)
+                    //verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            item {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    HeaderProfileView("Lucas", "Castro")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Recetas de Lucas",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD84F2A)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+
+            // Lista de recetas
+            items(recetas) { receta ->
+                RecetaCard(
+                    titulo = receta.nombre,
+                    resenias = 11,
+                    estrellas = 3,
+                    ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
+                    imagenId = R.drawable.logo2
+                )
+            }
+
         }
     }
 
@@ -104,5 +130,5 @@ fun HeaderProfileView(name: String, username: String) {
 @Preview(showBackground = true)
 @Composable
 fun ProfileViewPreview() {
-    ProfileViewActivity()
+    ProfileViewScreen()
 }

@@ -1,8 +1,15 @@
 package com.desarrolloaplicaciones.sazon
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,60 +24,80 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.*
+import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
+import kotlinx.coroutines.launch
+import androidx.core.view.WindowCompat
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.platform.LocalContext
 
+class MisRecetasActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Esto habilita edge to edge, si usas esta función
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+
+        setContent {
+            MisRecetasScreen()
+        }
+    }
+}
 
 
 @Composable
-fun MisRecetasActivity() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFDF5ED)),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column (horizontalAlignment = Alignment.CenterHorizontally){
-            SazonHeader()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Mis Recetas", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD84F2A))
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-        Column {
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-            RecetaCard(
-                titulo = "Fideos con crema y jamón",
-                resenias = 11,
-                estrellas = 3,
-                ingredientes = listOf("Fideos", "crema para cocinar", "jamón", "manteca", "queso rallado"),
-                imagenId = R.drawable.logo2
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(16.dp))
-            BottomNavigationBar()
+fun MisRecetasScreen() {
+    var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(true) {
+        scope.launch {
+            try {
+                recetas = RetrofitClient.api.obtenerRecetas()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
+    Scaffold (bottomBar = { BottomNavigationBar() }) { innerPadding ->
 
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFFDF5ED))
+                .padding(innerPadding)
+        ) {
+            // Encabezado
+            item {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    SazonHeader()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Mis Recetas",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD84F2A)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
 
+            // Lista de recetas
+            items(recetas) { receta ->
+                RecetaCard(
+                    titulo = receta.nombre,
+                    resenias = 11,
+                    estrellas = 3,
+                    ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
+                    imagenId = R.drawable.logo2
+                )
+            }
+
+        }
+    }
 }
 
 
@@ -82,8 +109,12 @@ fun RecetaCard(
     ingredientes: List<String>,
     imagenId: Int
 ) {
+    val context = LocalContext.current;
     Row(
         modifier = Modifier
+            .clickable {
+                context.startActivity(Intent(context, ProfileActivity::class.java))
+            }
             .fillMaxWidth()
             .background(Color(0xFFFDF5ED))
             .drawBehind {
@@ -126,14 +157,6 @@ fun RecetaCard(
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                /*repeat(estrellas) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Estrella",
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }*/
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -153,5 +176,5 @@ fun RecetaCard(
 @Preview(showBackground = true)
 @Composable
 fun MisRecetasPreview() {
-    MisRecetasActivity()
+    MisRecetasScreen()
 }
