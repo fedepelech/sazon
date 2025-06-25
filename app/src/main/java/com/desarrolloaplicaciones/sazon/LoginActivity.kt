@@ -1,6 +1,9 @@
 package com.desarrolloaplicaciones.sazon
 
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -38,6 +41,7 @@ import com.desarrolloaplicaciones.sazon.data.TokenManager
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonBackground
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonPrimary
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
+import com.desarrolloaplicaciones.sazon.util.ConnectivityUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +61,7 @@ class LoginActivity : ComponentActivity() {
                 .fillMaxSize()
                 .background(SazonBackground)) { innerPadding ->
                 LoginScreen(
-                    onLoginClicked = { email, password -> login(email, password) },
+                    onLoginClicked = { email, password -> attemptLogin(email, password) },
                     onGuestClicked = {
                         val intent = Intent(this@LoginActivity, HomeActivity::class.java)
                         startActivity(intent);
@@ -67,6 +71,20 @@ class LoginActivity : ComponentActivity() {
                     isLoading = isLoading
                 )
             }
+        }
+    }
+
+    fun checkInternetConnection(): Boolean {
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+        return when {
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
         }
     }
 
@@ -122,6 +140,16 @@ class LoginActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    fun attemptLogin(email: String, password: String) {
+        if (!ConnectivityUtil.checkInternetConnection(this)) {
+            val intent = Intent(this, OfflineScreenActivity::class.java)
+            startActivity(intent)
+        } else {
+            // Hay conexión - proceder con el login
+            login(email, password)
         }
     }
 }

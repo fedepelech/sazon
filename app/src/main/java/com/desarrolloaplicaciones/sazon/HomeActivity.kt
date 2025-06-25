@@ -1,5 +1,8 @@
 package com.desarrolloaplicaciones.sazon
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -62,7 +65,7 @@ class HomeActivity : ComponentActivity() {
                         onRecipesFetched(recipes)
                     } else {
                         Toast.makeText(
-                            this@HomeActivity, // Ahora funciona correctamente
+                            this@HomeActivity,
                             "No se encontraron recetas.",
                             Toast.LENGTH_SHORT
                         ).show()
@@ -72,7 +75,7 @@ class HomeActivity : ComponentActivity() {
                 withContext(Dispatchers.Main) {
                     if (e is retrofit2.HttpException && e.code() >= 400) {
                         Toast.makeText(
-                            this@HomeActivity, // Contexto accesible
+                            this@HomeActivity,
                             "Error al cargar las recetas: ${e.message}",
                             Toast.LENGTH_SHORT
                         ).show()
@@ -88,14 +91,58 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
+    // Nueva función específica para búsquedas
+    fun searchRecipes(query: String, onRecipesFetched: (List<Recipe>) -> Unit, onError: (String) -> Unit, excludeFilter: Boolean) {
+        val retrofit = RetrofitServiceFactory.makeRetrofitService()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = if (excludeFilter) {
+                    retrofit.getRecipesWithExcludeFilter(query)
+                } else {
+                    retrofit.getRecipesWithIncludeFilter(query)
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (response.isNotEmpty()) {
+                        val recipes = response.map { recipeResponse ->
+                            Recipe(
+                                id = recipeResponse.id,
+                                nombre = recipeResponse.nombre,
+                                imageRes = R.drawable.recipe1,
+                                createdAt = recipeResponse.createdAt
+                            )
+                        }
+                        onRecipesFetched(recipes)
+                    } else {
+                        onRecipesFetched(emptyList())
+                        Toast.makeText(
+                            this@HomeActivity,
+                            "No se encontraron recetas para '$query'",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    val errorMsg = if (e is retrofit2.HttpException && e.code() >= 400) {
+                        "Error al buscar recetas: ${e.message}"
+                    } else {
+                        "Error de red: ${e.message}"
+                    }
+                    onError(errorMsg)
+                    Toast.makeText(this@HomeActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Se valida si esta autenticado
         var isAuthenticated = if (TokenManager.getAccessToken().isNullOrEmpty()) false else true
 
-
-
+        enableEdgeToEdge()
         setContent {
             Scaffold(
                 modifier = Modifier
@@ -107,7 +154,7 @@ class HomeActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .background(SazonBackground),
                         isAuthenticated = isAuthenticated,
-                        activity = this@HomeActivity // Pasamos la referencia de la actividad
+                        activity = this@HomeActivity
                     )
                 }
             )
@@ -120,12 +167,43 @@ class HomeActivity : ComponentActivity() {
 fun HomeScreen(
     modifier: Modifier,
     isAuthenticated: Boolean,
-    activity: HomeActivity // Recibimos la actividad como parámetro
+    activity: HomeActivity
 ) {
     // Estado para manejar las recetas y el loading
     var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var currentSearchQuery by remember { mutableStateOf("") }
+
+    // Función para manejar búsquedas
+    val handleSearch: (String, Boolean) -> Unit = { query, excludeFilter ->
+        if (query.isNotEmpty()) {
+            currentSearchQuery = query
+            isLoading = true
+            errorMessage = null
+
+            activity.searchRecipes(
+                query = query,
+                onRecipesFetched = { searchResults ->
+                    recipes = searchResults
+                    isLoading = false
+                },
+                onError = { error ->
+                    errorMessage = error
+                    isLoading = false
+                },
+                excludeFilter = excludeFilter
+            )
+        } else {
+            // Si no hay query, cargar todas las recetas
+            currentSearchQuery = ""
+            isLoading = true
+            activity.getRecipesList { fetchedRecipes ->
+                recipes = fetchedRecipes
+                isLoading = false
+            }
+        }
+    }
 
     // LaunchedEffect para cargar las recetas al iniciar la pantalla
     LaunchedEffect(Unit) {
@@ -146,7 +224,6 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Reemplazar por imagotipo.
                         Image(
                             painter = painterResource(id = R.drawable.logo2),
                             contentDescription = "Logo de Sazón",
@@ -182,13 +259,15 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Espacio debajo del header
             item {
                 Spacer(modifier = Modifier.height(5.dp))
             }
 
             item {
-                SearchSection()
+                SearchSection(
+                    onSearch = handleSearch,
+                    currentQuery = currentSearchQuery
+                )
             }
 
             item {
@@ -223,7 +302,37 @@ fun HomeScreen(
                     }
                 }
             } else {
-                // Mostrar las recetas cargadas
+                // Mostrar mensaje si no hay resultados de búsqueda
+                if (currentSearchQuery.isNotEmpty() && recipes.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No se encontraron recetas para '$currentSearchQuery'",
+                                    color = Color(0xFF7B1FA2),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { handleSearch("", false) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4CAF50)
+                                    )
+                                ) {
+                                    Text("Ver todas las recetas")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Mostrar las recetas
                 items(recipes) { recipe ->
                     RecipeCard(recipe = recipe)
                 }
@@ -238,41 +347,46 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchSection() {
-    var searchText by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+fun SearchSection(
+    onSearch: (String, Boolean) -> Unit,
+    currentQuery: String = ""
+) {
+    var searchText by remember { mutableStateOf(currentQuery) }
+    var excludeFilter by remember { mutableStateOf(false) }
 
     SearchBar(
         inputField = {
             SearchBarDefaults.InputField(
                 query = searchText,
                 onQueryChange = { searchText = it },
-                onSearch = { expanded = false },
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-                placeholder = {
-                    Text(
-                        "Buscar...",
-                        color = Color.Gray
-                    )
+                onSearch = { query ->
+                    onSearch(query.trim(), excludeFilter)
                 },
+                expanded = false,
+                onExpandedChange = { },
+                placeholder = { Text("Buscar recetas...") },
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Buscar",
-                        tint = Color.Gray
-                    )
+                    Icon(Icons.Default.Search, contentDescription = "Buscar")
+                },
+                trailingIcon = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = excludeFilter,
+                            onCheckedChange = { excludeFilter = it }
+                        )
+                        Text("Excluir", fontSize = 12.sp)
+                    }
                 }
             )
         },
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(25.dp)
+        expanded = false,
+        onExpandedChange = { },
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Aquí puedes agregar sugerencias de búsqueda si es necesario
+        // Sin contenido expandido para evitar problemas de constraints
     }
 }
+
 
 @Composable
 fun FilterSection() {
@@ -359,22 +473,6 @@ fun RecipeCard(recipe: Recipe) {
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
-
-                // Estrellas de puntuación (comentadas por ahora)
-                /*
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(5) { index ->
-                        Icon(
-                            imageVector = if (index < recipe.rating) Icons.Filled.Star else Icons.Outlined.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-                */
             }
         }
     }

@@ -4,6 +4,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
 import retrofit2.http.GET
 import retrofit2.http.POST;
+import retrofit2.http.Query
 
 interface RetrofitService {
     @POST ("/api/login")
@@ -13,6 +14,16 @@ interface RetrofitService {
 
     @GET ("/api/recetas/ultimas")
     suspend fun getRecentRecipes(): List<RecentRecipeReturn>;
+
+    @GET("/api/recetas/ingredientes")
+    suspend fun getRecipesWithIncludeFilter(
+        @Query("incluye") ingredient: String)
+    : List<RecentRecipeReturn>;
+
+    @GET("/api/recetas/ingredientes")
+    suspend fun getRecipesWithExcludeFilter(
+        @Query("excluye") ingredient: String)
+            : List<RecentRecipeReturn>;
 }
 object RetrofitServiceFactory {
     fun makeRetrofitService(): RetrofitService {
