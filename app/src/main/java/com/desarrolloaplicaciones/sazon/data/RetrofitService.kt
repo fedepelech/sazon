@@ -24,6 +24,14 @@ interface RetrofitService {
     suspend fun getRecipesWithExcludeFilter(
         @Query("excluye") ingredient: String)
             : List<RecentRecipeReturn>;
+
+    @GET("/api/tipos_receta")
+    suspend fun getRecipeTypes(): List<RecipeTypeReturn>;
+
+    @GET("/api/recetas/tipo")
+    suspend fun getRecipesByType(
+        @Query("tipo") type: String
+    ): List<RecentRecipeReturn>;
 }
 object RetrofitServiceFactory {
     fun makeRetrofitService(): RetrofitService {

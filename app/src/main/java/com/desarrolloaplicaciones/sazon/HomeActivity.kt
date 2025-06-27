@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
 import com.desarrolloaplicaciones.sazon.data.RecentRecipeReturn
+import com.desarrolloaplicaciones.sazon.data.Recipe
 
 class HomeActivity : ComponentActivity() {
     fun getRecipesList(onRecipesFetched: (List<Recipe>) -> Unit) {
@@ -136,11 +137,73 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
+    // FUNCIÓN NUEVA: Búsqueda por tipo de receta
+    fun searchRecipesByType(
+        recipeType: String,
+        onRecipesFetched: (List<Recipe>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val retrofit = RetrofitServiceFactory.makeRetrofitService()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = retrofit.getRecipesByType(recipeType)
+
+                withContext(Dispatchers.Main) {
+                    if (response.isNotEmpty()) {
+                        val recipes = response.map { recipeResponse ->
+                            Recipe(
+                                id = recipeResponse.id,
+                                nombre = recipeResponse.nombre,
+                                imageRes = R.drawable.recipe1,
+                                createdAt = recipeResponse.createdAt
+                            )
+                        }
+                        onRecipesFetched(recipes)
+                    } else {
+                        onRecipesFetched(emptyList())
+                        Toast.makeText(
+                            this@HomeActivity,
+                            "No se encontraron recetas para el tipo '$recipeType'",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    val errorMsg = if (e is retrofit2.HttpException && e.code() >= 400) {
+                        "Error al buscar recetas por tipo: ${e.message}"
+                    } else {
+                        "Error de red: ${e.message}"
+                    }
+                    onError(errorMsg)
+                    Toast.makeText(this@HomeActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    fun getRecipeFilters(onFiltersFetched: (List<String>) -> Unit) {
+        val retrofit = RetrofitServiceFactory.makeRetrofitService()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = retrofit.getRecipeTypes()
+                withContext(Dispatchers.Main) {
+                    val filterNames = response.map { it.nombre }
+                    onFiltersFetched(filterNames)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onFiltersFetched(emptyList())
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Se valida si esta autenticado
-        var isAuthenticated = if (TokenManager.getAccessToken().isNullOrEmpty()) false else true
+        val isAuthenticated = !TokenManager.getAccessToken().isNullOrEmpty()
 
         enableEdgeToEdge()
         setContent {
@@ -169,15 +232,53 @@ fun HomeScreen(
     isAuthenticated: Boolean,
     activity: HomeActivity
 ) {
-    // Estado para manejar las recetas y el loading
+    // Estados para manejar las recetas y el loading
     var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
+    var filters by remember { mutableStateOf<List<String>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var currentSearchQuery by remember { mutableStateOf("") }
 
-    // Función para manejar búsquedas
+    // ESTADOS PARA FILTROS: Para el filtro seleccionado y su índice
+    var selectedFilter by remember { mutableStateOf<String?>(null) }
+    var selectedFilterIndex by remember { mutableStateOf(-1) }
+
+    // FUNCIÓN MODIFICADA: Para manejar la selección de filtros con índice
+    val handleFilterSelection: (String, Int) -> Unit = { filterName, index ->
+        selectedFilterIndex = index
+        selectedFilter = if (filterName.isNotEmpty()) filterName else null
+        currentSearchQuery = "" // Limpiar búsqueda por texto
+
+        if (filterName.isNotEmpty()) {
+            isLoading = true
+            errorMessage = null
+
+            activity.searchRecipesByType(
+                recipeType = filterName,
+                onRecipesFetched = { filteredRecipes ->
+                    recipes = filteredRecipes
+                    isLoading = false
+                },
+                onError = { error ->
+                    errorMessage = error
+                    isLoading = false
+                }
+            )
+        } else {
+            // Si no hay filtro, cargar todas las recetas
+            isLoading = true
+            activity.getRecipesList { fetchedRecipes ->
+                recipes = fetchedRecipes
+                isLoading = false
+            }
+        }
+    }
+
+    // Función para manejar búsquedas (MODIFICADA para resetear filtros)
     val handleSearch: (String, Boolean) -> Unit = { query, excludeFilter ->
         if (query.isNotEmpty()) {
+            selectedFilter = null // Limpiar filtro seleccionado
+            selectedFilterIndex = -1 // Resetear índice de filtro
             currentSearchQuery = query
             isLoading = true
             errorMessage = null
@@ -196,6 +297,8 @@ fun HomeScreen(
             )
         } else {
             // Si no hay query, cargar todas las recetas
+            selectedFilter = null
+            selectedFilterIndex = -1 // Resetear índice de filtro
             currentSearchQuery = ""
             isLoading = true
             activity.getRecipesList { fetchedRecipes ->
@@ -205,11 +308,15 @@ fun HomeScreen(
         }
     }
 
-    // LaunchedEffect para cargar las recetas al iniciar la pantalla
+    // LaunchedEffect para cargar las recetas y los filtros al iniciar la pantalla
     LaunchedEffect(Unit) {
+        isLoading = true
         activity.getRecipesList { fetchedRecipes ->
             recipes = fetchedRecipes
             isLoading = false
+        }
+        activity.getRecipeFilters { fetchedFilters ->
+            filters = fetchedFilters
         }
     }
 
@@ -271,7 +378,54 @@ fun HomeScreen(
             }
 
             item {
-                FilterSection()
+                // MODIFICADO: Pasar el índice seleccionado y el callback actualizado
+                FilterSection(
+                    filters = filters,
+                    selectedFilterIndex = selectedFilterIndex,
+                    onFilterSelected = handleFilterSelection
+                )
+            }
+
+            // MOSTRAR indicador de filtro activo
+            if (selectedFilter != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E8))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Filtrado por: $selectedFilter",
+                                color = Color(0xFF2E7D32),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            TextButton(
+                                onClick = {
+                                    selectedFilter = null
+                                    selectedFilterIndex = -1 // RESETEAR ÍNDICE
+                                    currentSearchQuery = ""
+                                    isLoading = true
+                                    activity.getRecipesList { fetchedRecipes ->
+                                        recipes = fetchedRecipes
+                                        isLoading = false
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    "Limpiar filtro",
+                                    color = Color(0xFF4CAF50)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // Mostrar loading, error o las recetas
@@ -302,8 +456,44 @@ fun HomeScreen(
                     }
                 }
             } else {
-                // Mostrar mensaje si no hay resultados de búsqueda
-                if (currentSearchQuery.isNotEmpty() && recipes.isEmpty()) {
+                // MODIFICADO: Mostrar mensajes personalizados para filtros y búsquedas
+                if (selectedFilter != null && recipes.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No se encontraron recetas del tipo '$selectedFilter'",
+                                    color = Color(0xFF7B1FA2),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        selectedFilter = null
+                                        selectedFilterIndex = -1 // RESETEAR ÍNDICE
+                                        currentSearchQuery = ""
+                                        isLoading = true
+                                        activity.getRecipesList { fetchedRecipes ->
+                                            recipes = fetchedRecipes
+                                            isLoading = false
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4CAF50)
+                                    )
+                                ) {
+                                    Text("Ver todas las recetas")
+                                }
+                            }
+                        }
+                    }
+                } else if (currentSearchQuery.isNotEmpty() && recipes.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -320,7 +510,16 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
-                                    onClick = { handleSearch("", false) },
+                                    onClick = {
+                                        selectedFilter = null
+                                        selectedFilterIndex = -1 // RESETEAR ÍNDICE
+                                        currentSearchQuery = ""
+                                        isLoading = true
+                                        activity.getRecipesList { fetchedRecipes ->
+                                            recipes = fetchedRecipes
+                                            isLoading = false
+                                        }
+                                    },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFF4CAF50)
                                     )
@@ -387,39 +586,47 @@ fun SearchSection(
     }
 }
 
-
+// FUNCIÓN FILTRO COMPLETAMENTE CORREGIDA: Con state hoisting
 @Composable
-fun FilterSection() {
-    val filters = listOf("Filtro 1", "Filtro 2", "Filtro 3", "Filtro 4", "Filtro 5")
-    var selectedFilterIndex by remember { mutableStateOf(0) }
-
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(vertical = 8.dp)
-    ) {
-        itemsIndexed(filters) { index, filter ->
-            FilterChip(
-                onClick = { selectedFilterIndex = index },
-                label = {
-                    Text(
-                        text = filter,
-                        fontSize = 12.sp
-                    )
-                },
-                selected = selectedFilterIndex == index,
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF4CAF50),
-                    selectedLabelColor = Color.White,
-                    containerColor = Color.White,
-                    labelColor = Color.Gray
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
+fun FilterSection(
+    filters: List<String>,
+    selectedFilterIndex: Int, // RECIBIR el índice seleccionado desde el padre
+    onFilterSelected: (String, Int) -> Unit // CALLBACK modificado para pasar también el índice
+) {
+    if (filters.isNotEmpty()) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp)
+        ) {
+            itemsIndexed(filters) { index, filterName ->
+                FilterChip(
+                    onClick = {
+                        // Toggle logic: si ya está seleccionado, deseleccionar (-1), si no, seleccionar (index)
+                        val newIndex = if (selectedFilterIndex == index) -1 else index
+                        val filterToApply = if (newIndex != -1) filterName else ""
+                        onFilterSelected(filterToApply, newIndex)
+                    },
+                    label = {
+                        Text(
+                            text = filterName,
+                            fontSize = 12.sp
+                        )
+                    },
                     selected = selectedFilterIndex == index,
-                    borderColor = if (selectedFilterIndex == index) Color(0xFF4CAF50) else Color.Gray,
-                    selectedBorderColor = Color(0xFF4CAF50)
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF4CAF50),
+                        selectedLabelColor = Color.White,
+                        containerColor = Color.White,
+                        labelColor = Color.Gray
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selectedFilterIndex == index,
+                        borderColor = if (selectedFilterIndex == index) Color(0xFF4CAF50) else Color.Gray,
+                        selectedBorderColor = Color(0xFF4CAF50)
+                    )
                 )
-            )
+            }
         }
     }
 }
@@ -547,13 +754,6 @@ fun BottomNavigationBar(isAuthenticated: Boolean) {
         }
     }
 }
-
-data class Recipe(
-    val id: String,
-    val nombre: String,
-    val imageRes: Int,
-    val createdAt: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)

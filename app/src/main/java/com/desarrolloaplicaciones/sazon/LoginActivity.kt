@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -53,8 +54,11 @@ class LoginActivity : ComponentActivity() {
     private var isLoading = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        TokenManager.removeToken()
         super.onCreate(savedInstanceState)
+
+        // MODIFICACIÓN: Verificar auto-login al iniciar
+        checkAutoLogin()
+
         enableEdgeToEdge()
         setContent {
             Scaffold(modifier = Modifier
@@ -64,12 +68,67 @@ class LoginActivity : ComponentActivity() {
                     onLoginClicked = { email, password -> attemptLogin(email, password) },
                     onGuestClicked = {
                         val intent = Intent(this@LoginActivity, HomeActivity::class.java)
-                        startActivity(intent);
-                        finish();
+                        startActivity(intent)
+                        finish()
                     },
                     modifier = Modifier.padding(innerPadding),
                     isLoading = isLoading
                 )
+            }
+        }
+    }
+
+    // NUEVA FUNCIÓN: Verificar si se puede hacer auto-login
+    private fun checkAutoLogin() {
+        if (TokenManager.canAutoLogin()) {
+            // Si tiene credenciales válidas y token, ir directo a Home
+            val intent = Intent(this, HomeActivity::class.java)
+            startActivity(intent)
+            finish()
+            return
+        }
+
+        // Si no hay token pero sí credenciales, intentar login automático con las credenciales guardadas
+        if (TokenManager.hasCredentials() && !TokenManager.hasValidToken()) {
+            val (savedEmail, savedPassword) = TokenManager.loadCredentials()
+            if (savedEmail.isNotEmpty() && savedPassword.isNotEmpty()) {
+                // Intentar login automático en background
+                attemptAutoLogin(savedEmail, savedPassword)
+            }
+        }
+    }
+
+    // NUEVA FUNCIÓN: Intento de login automático en background
+    private fun attemptAutoLogin(email: String, password: String) {
+        if (!ConnectivityUtil.checkInternetConnection(this)) {
+            // Si no hay conexión, no intentar auto-login
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val retrofit = RetrofitServiceFactory.makeRetrofitService()
+                val body = LoginRequest(email, password)
+                val response = retrofit.login(body)
+
+                withContext(Dispatchers.Main) {
+                    if (!response.token.isNullOrEmpty()) {
+                        // Auto-login exitoso
+                        TokenManager.saveCompleteSession(
+                            email = email,
+                            password = password,
+                            accessToken = response.token,
+                        )
+
+                        val intent = Intent(this@LoginActivity, HomeActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
+                    // Si falla el auto-login, continuar normalmente con la pantalla de login
+                }
+            } catch (e: Exception) {
+                // Si falla el auto-login, continuar normalmente
+                // No mostrar error ya que es un intento automático
             }
         }
     }
@@ -88,21 +147,15 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
+    // FUNCIÓN MODIFICADA: Guardar sesión completa tras login exitoso
     fun login(email: String, pass: String) {
-        val retrofit = RetrofitServiceFactory.makeRetrofitService();
+        val retrofit = RetrofitServiceFactory.makeRetrofitService()
         if (email.isBlank() || pass.isBlank()) {
-            Toast.makeText(this, "Por favor, ingrese su email y contraseña", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Por favor, ingrese su email y contraseña", Toast.LENGTH_SHORT).show()
             return
         }
 
-//        val json = """
-//        {
-//            "email": "$email",
-//            "password": "$pass"
-//        }
-//        """.trimIndent()
-        
-        val body = LoginRequest(email, pass);
+        val body = LoginRequest(email, pass)
         lifecycleScope.launch(Dispatchers.IO) {
             isLoading.value = true
             try {
@@ -110,10 +163,15 @@ class LoginActivity : ComponentActivity() {
                 withContext(Dispatchers.Main) {
                     isLoading.value = false
                     if (!response.token.isNullOrEmpty()) {
+                        TokenManager.saveCompleteSession(
+                            email = email,
+                            password = pass,
+                            accessToken = response.token
+                        )
+
                         val intent = Intent(this@LoginActivity, HomeActivity::class.java)
-                        TokenManager.saveToken(response.token);
-                        startActivity(intent);
-                        finish();
+                        startActivity(intent)
+                        finish()
                     } else {
                         Toast.makeText(
                             this@LoginActivity,
@@ -162,8 +220,12 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     isLoading: State<Boolean>,
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    // MODIFICACIÓN: Cargar credenciales usando TokenManager mejorado
+    val savedCredentials = remember { TokenManager.loadCredentials() }
+
+    // MODIFICACIÓN: Inicializar campos con credenciales guardadas
+    var email by remember { mutableStateOf(savedCredentials.first) }
+    var password by remember { mutableStateOf(savedCredentials.second) }
     var showPassword by remember { mutableStateOf(false) }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -215,15 +277,20 @@ fun LoginScreen(
             }
         }
 
+        // CAMPO EMAIL: Ya se autocompleta con las credenciales guardadas
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 25.dp),
-            placeholder = { Text(text = stringResource(id = R.string.nombre_de_usuario),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 0.dp)) },
+            placeholder = {
+                Text(
+                    text = stringResource(id = R.string.nombre_de_usuario),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 0.dp)
+                )
+            },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -232,15 +299,20 @@ fun LoginScreen(
             colors = textFieldColors
         )
 
+        // CAMPO PASSWORD: Ya se autocompleta con las credenciales guardadas
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 25.dp),
-            placeholder = { Text(text = stringResource(id = R.string.contrasena),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 0.dp)) },
+            placeholder = {
+                Text(
+                    text = stringResource(id = R.string.contrasena),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 0.dp)
+                )
+            },
             singleLine = true,
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
@@ -251,7 +323,7 @@ fun LoginScreen(
             trailingIcon = {
                 IconToggleButton(
                     checked = showPassword,
-                    onCheckedChange = { showPassword = it } // 'it' is the new checked state
+                    onCheckedChange = { showPassword = it }
                 ) {
                     Image(
                         painter = painterResource(
@@ -265,9 +337,9 @@ fun LoginScreen(
             }
         )
 
+        // BOTÓN LOGIN MODIFICADO: Usar las credenciales de los campos
         Button(
-//            onClick = { onLoginClicked(email, password) },
-            onClick = { onLoginClicked("fede@ejemplo.com", "12345") },
+            onClick = { onLoginClicked(email, password) }, // CORREGIDO: Usar credenciales de los campos
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 35.dp),
