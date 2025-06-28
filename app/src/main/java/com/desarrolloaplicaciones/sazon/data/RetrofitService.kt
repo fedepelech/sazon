@@ -32,6 +32,16 @@ interface RetrofitService {
     suspend fun getRecipesByType(
         @Query("tipo") type: String
     ): List<RecentRecipeReturn>;
+
+    @POST("/api/recuperar-clave")
+    suspend fun recoverPassword(
+        @Body body: RecoverPasswordRequest
+    ): retrofit2.Response<RecoverPasswordReturn>
+
+    @POST("/api/recuperar-clave/validar")
+    suspend fun recoverPasswordValidate(
+        @Body body: RecoverPasswordValidateRequest
+    ): retrofit2.Response<RecoverPasswordReturn>
 }
 object RetrofitServiceFactory {
     fun makeRetrofitService(): RetrofitService {

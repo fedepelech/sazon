@@ -45,7 +45,6 @@ object TokenManager {
     }
 
     // ============= MÉTODOS PARA CREDENCIALES =============
-
     /**
      * Guarda las credenciales del usuario de forma segura
      */

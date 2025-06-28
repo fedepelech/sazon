@@ -220,6 +220,8 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     isLoading: State<Boolean>,
 ) {
+    val context = LocalContext.current
+
     // MODIFICACIÓN: Cargar credenciales usando TokenManager mejorado
     val savedCredentials = remember { TokenManager.loadCredentials() }
 
@@ -286,7 +288,7 @@ fun LoginScreen(
                 .padding(top = 25.dp),
             placeholder = {
                 Text(
-                    text = stringResource(id = R.string.nombre_de_usuario),
+                    text = stringResource(id = R.string.email),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 0.dp)
                 )
@@ -336,6 +338,23 @@ fun LoginScreen(
                 }
             }
         )
+
+        // NUEVO BOTÓN: ¿Has olvidado la contraseña?
+        TextButton(
+            onClick = {
+                val intent = Intent(context, ForgotPasswordActivity::class.java)
+                context.startActivity(intent)
+            },
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 16.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.forgot_password_text),
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
 
         // BOTÓN LOGIN MODIFICADO: Usar las credenciales de los campos
         Button(

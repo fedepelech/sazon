@@ -2,12 +2,17 @@
     <string name="app_name">Sazon</string>
     <string name="sazonlogo">sazonLogo</string>
     <string name="ingresar_como_invitado">Ingresar como invitado</string>
-    <string name="nombre_de_usuario">Nombre de usuario</string>
+    <string name="email">Email</string>
     <string name="contrasena">Contraseña</string>
+    <string name="forgot_password_text">¿Has olvidado la contraseña?</string>
     <string name="iniciar_sesion">Iniciar sesión</string>
+    <string name="forgot_password_header">Recuperar Contraseña</string>
+    <string name="reset_password">Restablecer Contraseña</string>
     <string name="title_activity_loader">LoaderActivity</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_home">HomeActivity</string>
     <string name="title_activity_main">MainActivity</string>
     <string name="title_activity_offline_screen">OfflineScreenActivity</string>
+    <string name="title_activity_forgot_password">ForgotPasswordActivity</string>
+    <string name="title_activity_reset_password">ResetPasswordActivity</string>
 </resources>

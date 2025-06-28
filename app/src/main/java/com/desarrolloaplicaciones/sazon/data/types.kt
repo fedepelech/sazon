@@ -6,7 +6,7 @@ data class LoginReturn(
     val token: String
 )
 
-data class Recipe(
+data class Recipe (
     val id: String,
     val nombre: String,
     val imageRes: Int,
@@ -19,7 +19,7 @@ data class RecentRecipeReturn (
     @SerializedName("created_at") val createdAt: String
 )
 
-data class LoginRequest(
+data class LoginRequest (
     val email: String,
     val password: String
 )
@@ -27,4 +27,19 @@ data class LoginRequest(
 data class RecipeTypeReturn (
     val id: String,
     val nombre: String
+)
+
+data class RecoverPasswordRequest (
+    val email: String
+)
+
+data class RecoverPasswordReturn (
+    val message: String
+)
+
+data class RecoverPasswordValidateRequest(
+    val email: String,
+    val codigo: String,
+    val nuevaClave: String,
+    val confirmacion: String
 )
