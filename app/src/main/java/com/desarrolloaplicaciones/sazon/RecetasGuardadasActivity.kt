@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
 import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.TokenManager
 import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 
 class RecetasGuardadasActivity : ComponentActivity() {
@@ -50,11 +51,14 @@ fun RecetasGuardadasScreen() {
         val scope = rememberCoroutineScope()
         var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
         val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
+        val token = TokenManager.getAccessToken()
 
         LaunchedEffect(true) {
             scope.launch {
                 try {
-                    val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
+                    /*val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
+                    recetas = completarImagenesRecetas(retrofitService, recetasbase)*/
+                    val recetasbase = retrofitService.getRecetasGuardadas("Bearer $token").sortedBy { it.nombre }
                     recetas = completarImagenesRecetas(retrofitService, recetasbase)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -83,16 +87,32 @@ fun RecetasGuardadasScreen() {
                 }
             }
 
-            // Lista de recetas
-            items(recetas) { receta ->
-                RecetaCard(
-                    titulo = receta.nombre,
-                    resenias = 11,
-                    estrellas = 3,
-                    ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                    imagenUrl = receta.imagenUrl,
-                    recetaId = receta.id
-                )
+            if (recetas.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No tenés recetas guardadas",
+                            fontSize = 18.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            } else {
+                items(recetas) { receta ->
+                    RecetaCard(
+                        titulo = receta.nombre,
+                        resenias = 11,
+                        estrellas = 3,
+                        ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
+                        imagenUrl = receta.imagenUrl,
+                        recetaId = receta.id
+                    )
+                }
             }
 
         }

@@ -61,6 +61,8 @@ fun ProfileViewScreen() {
             try {
                 val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
                 recetas = completarImagenesRecetas(retrofitService, recetasbase)
+                /*val recetasbase = retrofitService.getRecetasPorUsuario(usuario_id).sortedBy { it.nombre }
+                recetas = completarImagenesRecetas(retrofitService, recetasbase)*/
 
             } catch (e: Exception) {
                 e.printStackTrace()

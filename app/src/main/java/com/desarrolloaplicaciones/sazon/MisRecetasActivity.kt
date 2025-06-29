@@ -62,11 +62,12 @@ fun MisRecetasScreen() {
     var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
     val scope = rememberCoroutineScope()
     val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
+    val usuario_id = TokenManager.getUserId().toString();
 
     LaunchedEffect(true) {
         scope.launch {
             try {
-                val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
+                val recetasbase = retrofitService.getRecetasPorUsuario(usuario_id).sortedBy { it.nombre }
                 recetas = completarImagenesRecetas(retrofitService, recetasbase)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -96,17 +97,32 @@ fun MisRecetasScreen() {
                 }
             }
 
-            // Lista de recetas
-            items(recetas) { receta ->
-                RecetaCard(
-                    titulo = receta.nombre,
-                    resenias = 11,
-                    estrellas = 3,
-                    ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                    imagenUrl = receta.imagenUrl,
-                    recetaId = receta.id
-                )
-                println(receta.imagenUrl);
+            if (recetas.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No tenés recetas creadas",
+                            fontSize = 18.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            } else {
+                items(recetas) { receta ->
+                    RecetaCard(
+                        titulo = receta.nombre,
+                        resenias = 11,
+                        estrellas = 3,
+                        ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
+                        imagenUrl = receta.imagenUrl,
+                        recetaId = receta.id
+                    )
+                }
             }
 
         }
@@ -114,97 +130,7 @@ fun MisRecetasScreen() {
 }
 
 
-/*@Composable
-fun RecetaCard(
-    titulo: String,
-    resenias: Int,
-    estrellas: Int,
-    ingredientes: List<String>,
-    imagenUrl: String?,
-    recetaId: String
-) {
-    val context = LocalContext.current;
-    Row(
-        modifier = Modifier
-            .clickable {
-                val intent = Intent(context, ProductPageActivity::class.java).apply {
-                    putExtra("recetaId", recetaId)
-                }
-                context.startActivity(intent)
-            }
-            .fillMaxWidth()
-            .background(Color(0xFFFDF5ED))
-            .drawBehind {
-                val strokeWidth = 1.dp.toPx()
-                val y = size.height - strokeWidth / 2
-                drawLine(
-                    color = Color(0xFF4CAF50),
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = strokeWidth
-                )
-            }
-            .padding(12.dp)
-    ) {
-        /*Image(
-            painter = painterResource(id = imagenId),
-            contentDescription = null,
-            modifier = Modifier
-                .size(100.dp)
-                .clip(RoundedCornerShape(8.dp))
-        )*/
-        if (imagenUrl != null) {
-            androidx.compose.foundation.Image(
-                painter = rememberAsyncImagePainter("https://recetasapp-blue.vercel.app$imagenUrl"),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
-        } else {
-            Image(
-                painter = painterResource(id = R.drawable.logo2),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // 📝 Información
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = titulo,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF388E3C) // Verde fuerte
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "($resenias reseñas)",
-                    fontStyle = FontStyle.Italic,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Ingredientes:",
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFD84F2A)
-            )
-            Text(
-                text = ingredientes.joinToString(", "),
-                color = Color(0xFFFFA000),
-            )
-        }
-    }
-}*/
 
 @Composable
 fun RecetaCard(
