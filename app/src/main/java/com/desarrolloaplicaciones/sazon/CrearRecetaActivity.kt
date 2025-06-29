@@ -1,5 +1,7 @@
 package com.desarrolloaplicaciones.sazon
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -39,18 +41,24 @@ import com.desarrolloaplicaciones.sazon.data.TiposReceta
 import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 import kotlinx.coroutines.CoroutineScope
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.Image
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
+import com.desarrolloaplicaciones.sazon.data.TokenManager
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 
 class CrearRecetaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         // Esto habilita edge to edge, si usas esta función
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -70,18 +78,23 @@ data class PasoInput(
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun CrearRecetaScreen() {
+    val context = LocalContext.current
     var categorias by remember { mutableStateOf<List<TiposReceta>>(emptyList()) }
     val dificultades= listOf("Facil", "Medio", "Dificil")
     var categoriaSeleccionada by remember { mutableStateOf("") }
     var dificultadSeleccionada by remember { mutableStateOf("") }
+    var ingredienteSeleccionado by remember { mutableStateOf("") }
     var titulo by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     val unidades = listOf("ml", "gr", "un")
     var ingredientes by remember { mutableStateOf(listOf(IngredienteInput())) }
+    var ingredientesDisponibles by remember { mutableStateOf<List<Ingrediente>>(emptyList()) }
+    //var ingredientes by remember { mutableStateOf<List<Ingrediente>>(emptyList()) }
     var pasos by remember { mutableStateOf(listOf(PasoInput())) }
     val imagenesSeleccionadas = remember { mutableStateListOf<Uri>() }
     val launcher = rememberLauncherForActivityResult(
@@ -97,8 +110,10 @@ fun CrearRecetaScreen() {
     LaunchedEffect(true) {
         scope.launch {
             try {
-                val resultado = retrofitService.obtenerCategorias()
-                categorias = resultado;
+                val categoriasResultado = retrofitService.obtenerCategorias()
+                categorias = categoriasResultado;
+                val ingredientesResultado = retrofitService.obtenerIngredientes()
+                ingredientesDisponibles = ingredientesResultado
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -182,7 +197,9 @@ fun CrearRecetaScreen() {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = dificultadExpanded)
                                 },
                                 colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                                modifier = Modifier.menuAnchor().fillMaxWidth()
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
                             )
 
                             ExposedDropdownMenu(
@@ -222,7 +239,9 @@ fun CrearRecetaScreen() {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                                 },
                                 colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                                modifier = Modifier.menuAnchor().fillMaxWidth()
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
                             )
 
                             ExposedDropdownMenu(
@@ -242,28 +261,60 @@ fun CrearRecetaScreen() {
                         }
                     }
                 }
+
+
                 ingredientes.forEachIndexed { index, ingrediente ->
+                    var ingredienteExpanded by remember(key1 = index) { mutableStateOf(false) }
+                    var unidadExpanded by remember(key1 = index) { mutableStateOf(false) }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = ingrediente.nombre,
-                            onValueChange = { newValue ->
-                                ingredientes = ingredientes.toMutableList().also {
-                                    it[index] = it[index].copy(nombre = newValue)
+                        // Dropdown de ingredientes disponibles
+                        ExposedDropdownMenuBox(
+                            expanded = ingredienteExpanded,
+                            onExpandedChange = { ingredienteExpanded = !ingredienteExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = ingrediente.nombre ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Ingrediente") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = ingredienteExpanded)
+                                },
+                                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .width(160.dp)
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = ingredienteExpanded,
+                                onDismissRequest = { ingredienteExpanded = false }
+                            ) {
+                                ingredientesDisponibles.forEach { nombre ->
+                                    DropdownMenuItem(
+                                        text = { Text(nombre.nombre) },
+                                        onClick = {
+                                            ingredientes = ingredientes.toMutableList().also {
+                                                it[index] = it[index].copy(nombre = nombre.nombre)
+                                            }
+                                            ingredienteExpanded = false
+                                        }
+                                    )
                                 }
-                            },
-                            label = { Text("Ingrediente") },
-                            modifier = Modifier.weight(1f)
-                        )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.width(8.dp))
 
+                        // Campo de cantidad
                         OutlinedTextField(
-                            value = ingrediente.cantidad,
+                            value = ingrediente.cantidad.toString(),
                             onValueChange = { newValue ->
                                 ingredientes = ingredientes.toMutableList().also {
                                     it[index] = it[index].copy(cantidad = newValue)
@@ -275,14 +326,13 @@ fun CrearRecetaScreen() {
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        var unidadExpanded by remember { mutableStateOf(false) }
-
+                        // Dropdown de unidades
                         ExposedDropdownMenuBox(
                             expanded = unidadExpanded,
                             onExpandedChange = { unidadExpanded = !unidadExpanded }
                         ) {
                             OutlinedTextField(
-                                value = ingrediente.unidad,
+                                value = ingrediente.unidad ?: "",
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("") },
@@ -344,7 +394,8 @@ fun CrearRecetaScreen() {
                         }
                     }
                 }
-                    pasos.forEachIndexed { index, paso ->
+
+                pasos.forEachIndexed { index, paso ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -448,8 +499,8 @@ fun CrearRecetaScreen() {
                     Box() {
                         Button(
                             modifier = Modifier.fillMaxWidth(0.93f),
-                            onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion,
-                                dificultadSeleccionada,ingredientes,pasos,retrofitService,scope) },
+                            onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope, context, imagenes = imagenesSeleccionadas) },
+                            //onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope) },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF409448))
                         ) {
                             Text("Guardar", color = Color.White)
@@ -463,7 +514,19 @@ fun CrearRecetaScreen() {
     }
 }
 
-fun guardarReceta(
+fun crearParteImagen(uri: Uri, context: Context): MultipartBody.Part {
+    val inputStream = context.contentResolver.openInputStream(uri)!!
+    val fileBytes = inputStream.readBytes()
+    val requestFile = RequestBody.create(
+        context.contentResolver.getType(uri)?.toMediaTypeOrNull() ?: "image/*".toMediaType(),
+        fileBytes
+    )
+    val fileName = "imagen_${System.currentTimeMillis()}.jpg"
+    return MultipartBody.Part.createFormData("imagen", fileName, requestFile)
+}
+
+
+/*fun guardarReceta(
     categorias: List<TiposReceta>,
     categoriaSeleccionada: String,
     titulo: String,
@@ -483,7 +546,7 @@ fun guardarReceta(
             descripcion = descripcion,
             dificultad = Dificultad(dificultadSeleccionada),
             ingredientes = ingredientes.mapNotNull { ing ->
-                val cantidadInt = ing.cantidad.toIntOrNull()
+                val cantidadInt = ing.cantidad.toInt()
                 if (cantidadInt != null && ing.nombre.isNotBlank() && ing.unidad.isNotBlank()) {
                     IngredientePost(
                         nombre = ing.nombre,
@@ -505,14 +568,95 @@ fun guardarReceta(
 
         scope.launch {
             try {
-                //retrofitService.subirReceta(recetaPost)
-                // mostrar feedback si querés
+                val accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJEQjNENzE0Qi05RTcyLTQxOTYtQTEyMC05RTdFQ0U1ODg0MTciLCJpYXQiOjE3NTEyMTY0NTQsImV4cCI6MTc1MTMwMjg1NH0.Gj-oLJlFfOoyxX3kW1hH0DP4vHrR2mbB-lGfX4e7Fbc"
+                val response = retrofitService.subirReceta("Bearer $accessToken", recetaPost)
+                println(response)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}*/
+
+fun guardarReceta(
+    categorias: List<TiposReceta>,
+    categoriaSeleccionada: String,
+    titulo: String,
+    descripcion: String,
+    dificultadSeleccionada: String,
+    ingredientes: List<IngredienteInput>,
+    pasos: List<PasoInput>,
+    retrofitService: RetrofitService,
+    scope: CoroutineScope,
+    context: Context,
+    imagenes: List<Uri>
+) {
+    val categoria = categorias.find { it.nombre == categoriaSeleccionada }
+    if (categoria != null) {
+        val recetaPost = RecetaPost(
+            nombre = titulo,
+            tipo_id = categoria.id,
+            descripcion = descripcion,
+            dificultad = Dificultad(dificultadSeleccionada),
+            ingredientes = ingredientes.mapNotNull { ing ->
+                val cantidadInt = ing.cantidad.toIntOrNull()
+                if (cantidadInt != null && ing.nombre.isNotBlank() && ing.unidad.isNotBlank()) {
+                    IngredientePost(ing.nombre, cantidadInt, ing.unidad)
+                } else null
+            },
+            pasos = pasos.mapIndexedNotNull { index, paso ->
+                if (paso.descripcion.isNotBlank()) {
+                    PasoPost(index + 1, paso.descripcion)
+                } else null
+            }
+        )
+
+        scope.launch {
+            try {
+                val token = TokenManager.getAccessToken()
+                val response = retrofitService.subirReceta("Bearer $token", recetaPost)
+
+                if (response.isSuccessful) {
+                    val recetaResponse = response.body()
+                    val recetaId = recetaResponse?.id
+
+                    if (recetaId != null) {
+                        imagenes.forEach { uri ->
+                            val part = crearParteImagen(uri, context)
+                            val imagenResponse =
+                                retrofitService.subirImagenReceta(recetaId, part, "Bearer $token")
+                            println("Imagen subida: ${imagenResponse.code()}")
+                        }
+
+                        // Show success Toast and redirect to MisRecetasActivity
+                        Toast.makeText(context, "Receta guardada con éxito", Toast.LENGTH_LONG)
+                            .show()
+                        val intent = Intent(context, MisRecetasActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Error al obtener el ID de la receta",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        println("No se pudo obtener el ID de la receta")
+                    }
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Error al subir receta: ${response.code()}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    println("Error al subir receta: ${response.code()}")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
 }
+
 
 
 @Preview(showBackground = true)

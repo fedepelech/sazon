@@ -120,5 +120,9 @@ data class PasoPost(
     val descripcion: String
 )
 
+data class CrearRecetaResponse(
+    val id: String
+)
+
 
 

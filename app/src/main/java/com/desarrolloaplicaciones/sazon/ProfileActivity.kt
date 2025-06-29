@@ -103,7 +103,7 @@ fun PerfilScreen() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Button(
                 onClick = {
-                    TokenManager.removeToken();
+                    TokenManager.clearCredentials();
                     context.startActivity(Intent(context, LoginActivity::class.java));
                           },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),

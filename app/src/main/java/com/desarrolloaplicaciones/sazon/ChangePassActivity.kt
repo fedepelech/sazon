@@ -122,7 +122,7 @@ fun ChangePassScreen() {
                             val response = retrofitService.recoverPasswordValidate(request)
                             if (response.isSuccessful) {
                                 Log.d("API", "Contraseña cambiada exitosamente")
-                                TokenManager.removeToken();
+                                TokenManager.clearCredentials()
                                 context.startActivity(Intent(context, LoginActivity::class.java));
                             } else {
                                 Log.e("API", "Error: ${response.code()}")

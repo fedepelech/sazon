@@ -71,6 +71,7 @@ object TokenManager {
      */
     fun clearCredentials() {
         encryptedPreferences.edit()
+            .remove(KEY_ACCESS_TOKEN)
             .remove(KEY_EMAIL)
             .remove(KEY_PASSWORD)
             .apply()

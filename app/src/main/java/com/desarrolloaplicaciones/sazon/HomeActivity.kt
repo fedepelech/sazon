@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,14 +29,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.lifecycleScope
-import com.desarrolloaplicaciones.sazon.LoginActivity
 import com.desarrolloaplicaciones.sazon.data.LoginRequest
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
@@ -44,26 +46,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.desarrolloaplicaciones.sazon.data.RecentRecipeReturn
+import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.Recipe
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 
 class HomeActivity : ComponentActivity() {
-    fun getRecipesList(onRecipesFetched: (List<Recipe>) -> Unit) {
+    fun getRecipesList(onRecipesFetched: (List<RecetaConImagen>) -> Unit) {
         val retrofit = RetrofitServiceFactory.makeRetrofitService()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = retrofit.getRecentRecipes()
                 withContext(Dispatchers.Main) {
                     if (response.isNotEmpty()) {
-                        val recipes = response.map { recipeResponse ->
-                            Recipe(
-                                id = recipeResponse.id,
-                                nombre = recipeResponse.nombre,
-                                imageRes = R.drawable.recipe1,
-                                createdAt = recipeResponse.createdAt
-                            )
-                        }
-                        onRecipesFetched(recipes)
+                        val recipesWithImages = completarImagenesRecetas(
+                            retrofit,
+                            response
+                        );
+                        onRecipesFetched(recipesWithImages)
                     } else {
                         Toast.makeText(
                             this@HomeActivity,
@@ -93,7 +95,7 @@ class HomeActivity : ComponentActivity() {
     }
 
     // Nueva función específica para búsquedas
-    fun searchRecipes(query: String, onRecipesFetched: (List<Recipe>) -> Unit, onError: (String) -> Unit, excludeFilter: Boolean) {
+    fun searchRecipes(query: String, onRecipesFetched: (List<RecetaConImagen>) -> Unit, onError: (String) -> Unit, excludeFilter: Boolean) {
         val retrofit = RetrofitServiceFactory.makeRetrofitService()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -105,15 +107,11 @@ class HomeActivity : ComponentActivity() {
 
                 withContext(Dispatchers.Main) {
                     if (response.isNotEmpty()) {
-                        val recipes = response.map { recipeResponse ->
-                            Recipe(
-                                id = recipeResponse.id,
-                                nombre = recipeResponse.nombre,
-                                imageRes = R.drawable.recipe1,
-                                createdAt = recipeResponse.createdAt
-                            )
-                        }
-                        onRecipesFetched(recipes)
+                        val recipesWithImages = completarImagenesRecetas(
+                            retrofit,
+                            response
+                        );
+                        onRecipesFetched(recipesWithImages)
                     } else {
                         onRecipesFetched(emptyList())
                         Toast.makeText(
@@ -140,7 +138,7 @@ class HomeActivity : ComponentActivity() {
     // FUNCIÓN NUEVA: Búsqueda por tipo de receta
     fun searchRecipesByType(
         recipeType: String,
-        onRecipesFetched: (List<Recipe>) -> Unit,
+        onRecipesFetched: (List<RecetaConImagen>) -> Unit,
         onError: (String) -> Unit
     ) {
         val retrofit = RetrofitServiceFactory.makeRetrofitService()
@@ -150,15 +148,11 @@ class HomeActivity : ComponentActivity() {
 
                 withContext(Dispatchers.Main) {
                     if (response.isNotEmpty()) {
-                        val recipes = response.map { recipeResponse ->
-                            Recipe(
-                                id = recipeResponse.id,
-                                nombre = recipeResponse.nombre,
-                                imageRes = R.drawable.recipe1,
-                                createdAt = recipeResponse.createdAt
-                            )
-                        }
-                        onRecipesFetched(recipes)
+                        val recipesWithImages = completarImagenesRecetas(
+                            retrofit,
+                            response
+                        );
+                        onRecipesFetched(recipesWithImages)
                     } else {
                         onRecipesFetched(emptyList())
                         Toast.makeText(
@@ -233,11 +227,12 @@ fun HomeScreen(
     activity: HomeActivity
 ) {
     // Estados para manejar las recetas y el loading
-    var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
+    var recipes by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
     var filters by remember { mutableStateOf<List<String>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var currentSearchQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     // ESTADOS PARA FILTROS: Para el filtro seleccionado y su índice
     var selectedFilter by remember { mutableStateOf<String?>(null) }
@@ -356,7 +351,12 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            BottomNavigationBar(isAuthenticated)
+            BottomNavigationBar(
+                isAuthenticated,
+                onProfileClick = {
+                    context.startActivity(Intent(context, ProfileActivity::class.java))
+                }
+            )
         }
     ) { paddingValues ->
         LazyColumn(
@@ -632,25 +632,37 @@ fun FilterSection(
 }
 
 @Composable
-fun RecipeCard(recipe: Recipe) {
+fun RecipeCard(recipe: RecetaConImagen) {
+
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(180.dp)
             .clickable {
-                // Aquí puedes agregar la navegación al detalle de la receta
+                val intent = Intent(context, ProductPageActivity::class.java).apply {
+                    putExtra("recetaId", recipe.id)
+                }
+                context.startActivity(intent)
             },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
+        val token = TokenManager.getAccessToken()
         Box(modifier = Modifier.fillMaxSize()) {
-            // Imagen de placeholder - reemplaza con tus imágenes reales
-            Image(
-                painter = painterResource(id = recipe.imageRes),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize()
+            val painter = rememberAsyncImagePainter(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(recipe.imagenUrl)
+                    .crossfade(true)
+                    .build()
             )
-
+            // Imagen de placeholder
+            Image(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
             // Gradiente oscuro para mejorar legibilidad del texto
             Box(
                 modifier = Modifier
@@ -686,7 +698,12 @@ fun RecipeCard(recipe: Recipe) {
 }
 
 @Composable
-fun BottomNavigationBar(isAuthenticated: Boolean) {
+fun BottomNavigationBar(
+    isAuthenticated: Boolean,
+    onProfileClick: () -> Unit
+) {
+    val context = LocalContext.current
+
     BottomAppBar(
         containerColor = Color.White,
         contentColor = Color.Gray,
@@ -716,7 +733,10 @@ fun BottomNavigationBar(isAuthenticated: Boolean) {
 
             // Botón flotante central
             FloatingActionButton(
-                onClick = { /* Acción agregar */ },
+                onClick = {
+                    val intent = Intent(context, CrearRecetaActivity::class.java)
+                    context.startActivity(intent)
+                },
                 containerColor = Color(0xFF4CAF50),
                 contentColor = Color.White,
                 modifier = Modifier.size(56.dp)
@@ -735,7 +755,7 @@ fun BottomNavigationBar(isAuthenticated: Boolean) {
             ) {
                 if (isAuthenticated) {
                     IconButton(
-                        onClick = { /* Navegación Perfil */ },
+                        onClick = onProfileClick,
                         modifier = Modifier.size(48.dp)
                     ) {
                         Column(

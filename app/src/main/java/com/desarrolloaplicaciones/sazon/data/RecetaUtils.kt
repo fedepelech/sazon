@@ -8,7 +8,7 @@ suspend fun completarImagenesRecetas(
         val imagenUrl = try {
             val imagenesResponse = retrofitService.obtenerImagenesReceta(receta.id)
             imagenesResponse.imagenes
-                .getOrNull(1) // Segunda imagen (índice 1)
+                .getOrNull(0)
                 ?.url
                 ?.let { it }
         } catch (e: Exception) {
