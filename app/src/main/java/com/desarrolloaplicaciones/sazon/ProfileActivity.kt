@@ -35,6 +35,9 @@ import kotlinx.coroutines.launch
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Person
 import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
@@ -86,13 +89,13 @@ fun PerfilScreen() {
         Column {
             usuario?.let { HeaderSection(name = it.nombre, username = it.email) }
             Spacer(modifier = Modifier.height(32.dp))
-            MenuItem(icon = Icons.Default.AccountCircle, text = "Mis recetas"){
+            MenuItem(icon = Icons.Default.Book, text = "Mis recetas") {
                 context.startActivity(Intent(context, MisRecetasActivity::class.java))
             }
-            MenuItem(icon = Icons.Default.AccountCircle, text = "Recetas guardadas"){
+            MenuItem(icon = Icons.Default.Bookmarks, text = "Recetas guardadas") {
                 context.startActivity(Intent(context, RecetasGuardadasActivity::class.java))
             }
-            MenuItem(icon = Icons.Default.AccountCircle, text = "Mi cuenta"){
+            MenuItem(icon = Icons.Default.Person, text = "Mi cuenta") {
                 val intent = Intent(context, ProfileEditActivity::class.java).apply {
                     putExtra("nombre", usuario?.nombre)
                     putExtra("email", usuario?.email)
@@ -105,7 +108,7 @@ fun PerfilScreen() {
                 onClick = {
                     TokenManager.clearCredentials();
                     context.startActivity(Intent(context, LoginActivity::class.java));
-                          },
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
@@ -179,7 +182,7 @@ fun BottomNavigationBar() {
             Icon(Icons.Default.Home, contentDescription = "Inicio")
         }
         Spacer(Modifier.weight(1f))
-        IconButton(onClick = {context.startActivity(Intent(context, ProfileActivity::class.java))}) {
+        IconButton(onClick = {context.startActivity(Intent(context, CrearRecetaActivity::class.java))}) {
             Icon(Icons.Default.AddCircle, contentDescription = "Agregar")
         }
         Spacer(Modifier.weight(1f))

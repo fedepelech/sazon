@@ -67,6 +67,14 @@ class LoginActivity : ComponentActivity() {
                 LoginScreen(
                     onLoginClicked = { email, password -> attemptLogin(email, password) },
                     onGuestClicked = {
+                        if (!ConnectivityUtil.checkInternetConnection(this@LoginActivity)) {
+                            Toast.makeText(
+                                this@LoginActivity,
+                                "No hay conexión a internet. Por favor, conéctese e intente de nuevo.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@LoginScreen
+                        }
                         val intent = Intent(this@LoginActivity, HomeActivity::class.java)
                         startActivity(intent)
                         finish()
