@@ -56,16 +56,26 @@ fun ChangePassScreen() {
     var nuevaClave by remember { mutableStateOf("") }
     var confirmacion by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val user_id = TokenManager.getUserId()
+    var email = ""
 
     LaunchedEffect(Unit) {
         try {
-            val response = retrofitService.recuperarClave(
-                EmailRecovery(email = "franmate324@gmail.com")
-            )
-            if (response.isSuccessful) {
-                Log.d("API", "Código enviado exitosamente")
-            } else {
-                Log.e("API", "Error al enviar código: ${response.code()}")
+            val mail = user_id?.let { retrofitService.obtenerUsuario(it).email }
+            if (mail != null) {
+                email = mail
+            }
+            val response = mail?.let { EmailRecovery(it) }?.let {
+                retrofitService.recuperarClave(
+                    it
+                )
+            }
+            if (response != null) {
+                if (response.isSuccessful) {
+                    Log.d("API", "Código enviado exitosamente")
+                } else {
+                    Log.e("API", "Error al enviar código: ${response.code()}")
+                }
             }
         } catch (e: Exception) {
             Log.e("API", "Excepción: ${e.message}")
@@ -110,7 +120,7 @@ fun ChangePassScreen() {
                     }
 
                     val request = ValidarRecuperarClaveRequest(
-                        email = "franmate324@gmail.com",
+                        email = email,
                         codigo = codigo,
                         nuevaClave = nuevaClave,
                         confirmacion = confirmacion
@@ -175,12 +185,6 @@ fun ChangePassBody(codigo: String,
                         .padding(end = 8.dp),
                     singleLine = true
                 )
-                Button(
-                    onClick = { /* TODO: Acción validar */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A))
-                ) {
-                    Text("Validar", color = Color.White)
-                }
             }
 
             CustomTextField(label = "Nueva Contraseña", value = nuevaClave, enabled = true, onValueChange = onNuevaClaveChange)
