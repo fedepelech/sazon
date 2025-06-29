@@ -15,4 +15,5 @@
     <string name="title_activity_offline_screen">OfflineScreenActivity</string>
     <string name="title_activity_forgot_password">ForgotPasswordActivity</string>
     <string name="title_activity_reset_password">ResetPasswordActivity</string>
+    <string name="title_activity_recetas_usuario">RecetasUsuarioActivity</string>
 </resources>

@@ -49,6 +49,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.Image
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
+import com.desarrolloaplicaciones.sazon.data.Ingrediente
 import com.desarrolloaplicaciones.sazon.data.TokenManager
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -94,7 +95,6 @@ fun CrearRecetaScreen() {
     val unidades = listOf("ml", "gr", "un")
     var ingredientes by remember { mutableStateOf(listOf(IngredienteInput())) }
     var ingredientesDisponibles by remember { mutableStateOf<List<Ingrediente>>(emptyList()) }
-    //var ingredientes by remember { mutableStateOf<List<Ingrediente>>(emptyList()) }
     var pasos by remember { mutableStateOf(listOf(PasoInput())) }
     val imagenesSeleccionadas = remember { mutableStateListOf<Uri>() }
     val launcher = rememberLauncherForActivityResult(

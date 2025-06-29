@@ -1,10 +1,10 @@
 package com.desarrolloaplicaciones.sazon.data;
-import com.desarrolloaplicaciones.sazon.Ingrediente
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -57,8 +57,20 @@ interface RetrofitService {
         @Path("usuarioId") usuarioId: String
     ): List<RecentRecipeReturn>
 
-    @GET ("/api/lista")
+    @GET("/api/lista")
     suspend fun getRecetasGuardadas(@Header("Authorization") token: String): List<RecentRecipeReturn>;
+
+    @POST("/api/lista")
+    suspend fun addToList(
+        @Header("Authorization") token: String,
+        @Body requestBody: AddToListRequest
+    ): retrofit2.Response<AddToListResponse>
+
+    @DELETE("/api/lista/{recetaId}")
+    suspend fun removeFromList(
+        @Header("Authorization") token: String,
+        @Path("recetaId") recetaId: String
+    ): retrofit2.Response<Unit>
 
     @GET("/api/recetas/{id}/imagenes")
     suspend fun obtenerImagenesReceta(@Path("id") recetaId: String): ImagenRecetaResponse
@@ -69,12 +81,21 @@ interface RetrofitService {
     @GET("/api/tipos_receta")
     suspend fun obtenerCategorias(): List<TiposReceta>
 
+    @GET("api/recetas/{recetaId}")
+    suspend fun obtenerRecetaPorId(@Path("recetaId") recetaId: String): RecetaDetalle
+
+    @GET("api/comentarios/receta/{recetaId}")
+    suspend fun obtenerComentariosPorReceta(@Path("recetaId") recetaId: String): ComentarioResponse
+
+    @POST("api/comentarios")
+    suspend fun crearComentario(@Body comentario: ComentarioRequest): ComentarioModel
 
     @POST("/api/recetas")
     suspend fun subirReceta(
         @Header("Authorization") token: String,
         @Body receta: RecetaPost
     ): Response<CrearRecetaResponse>
+
 
     @GET("/api/ingredientes")
     suspend fun obtenerIngredientes(): List<Ingrediente>

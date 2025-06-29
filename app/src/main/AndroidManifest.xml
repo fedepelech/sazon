@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
@@ -18,6 +17,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Sazon"
         tools:targetApi="31">
+        <activity
+            android:name=".RecetasUsuarioActivity"
+            android:exported="false"
+            android:label="@string/title_activity_recetas_usuario"
+            android:theme="@style/Theme.Sazon" />
         <activity
             android:name=".ResetPasswordActivity"
             android:exported="false"
@@ -41,7 +45,6 @@
         <activity
             android:name=".LoginActivity"
             android:exported="true"
-            android:label="MisRecetasActivity"
             android:theme="@style/Theme.Sazon">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
