@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.desarrolloaplicaciones.sazon.App
+import android.util.Base64
+import org.json.JSONObject
 
 object TokenManager {
     // Constantes
@@ -145,13 +147,6 @@ object TokenManager {
     }
 
     /**
-     * Obtiene el ID del usuario
-     */
-    fun getUserId(): String? {
-        return encryptedPreferences.getString(KEY_USER_ID, null)
-    }
-
-    /**
      * Obtiene el nombre de usuario
      */
     fun getUsername(): String? {
@@ -195,5 +190,20 @@ object TokenManager {
      */
     fun logout() {
         clearAllSession()
+    }
+
+    fun getUserId(): String? {
+        val token = getAccessToken() ?: return null
+        val parts = token.split(".")
+        if (parts.size != 3) return null
+
+        return try {
+            val payloadJson = String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_WRAP))
+            val payload = JSONObject(payloadJson)
+            payload.optString("userId", null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

@@ -35,6 +35,10 @@ import kotlinx.coroutines.launch
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.TokenManager
+import com.desarrolloaplicaciones.sazon.data.UsuarioResponse
 
 class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,8 +56,26 @@ class ProfileActivity : ComponentActivity() {
 
 @Composable
 fun PerfilScreen() {
-
+    val userId = TokenManager.getUserId()
+    if (userId != null) {
+        println("User ID: $userId")
+    } else {
+        println("No se pudo obtener el userId del token")
+    }
     val context = LocalContext.current
+    var usuario by remember { mutableStateOf<UsuarioResponse?>(null) }
+    val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(true) {
+        scope.launch {
+            try {
+                usuario = retrofitService.obtenerUsuario("$userId")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -62,7 +84,7 @@ fun PerfilScreen() {
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            HeaderSection(name = "Lucas", username = "@lcastro")
+            usuario?.let { HeaderSection(name = it.nombre, username = it.email) }
             Spacer(modifier = Modifier.height(32.dp))
             MenuItem(icon = Icons.Default.AccountCircle, text = "Mis recetas"){
                 context.startActivity(Intent(context, MisRecetasActivity::class.java))
@@ -71,12 +93,19 @@ fun PerfilScreen() {
                 context.startActivity(Intent(context, RecetasGuardadasActivity::class.java))
             }
             MenuItem(icon = Icons.Default.AccountCircle, text = "Mi cuenta"){
-                context.startActivity(Intent(context, ProfileEditActivity::class.java))
+                val intent = Intent(context, ProfileEditActivity::class.java).apply {
+                    putExtra("nombre", usuario?.nombre)
+                    putExtra("email", usuario?.email)
+                }
+                context.startActivity(intent)
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Button(
-                onClick = { /* TODO: acción cerrar sesión */ },
+                onClick = {
+                    TokenManager.removeToken();
+                    context.startActivity(Intent(context, LoginActivity::class.java));
+                          },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
@@ -146,7 +175,7 @@ fun BottomNavigationBar() {
         tonalElevation = 4.dp,
         contentPadding = PaddingValues(horizontal = 24.dp),
     ) {
-        IconButton(onClick = {context.startActivity(Intent(context, ProfileActivity::class.java))}) {
+        IconButton(onClick = {context.startActivity(Intent(context, HomeActivity::class.java))}) {
             Icon(Icons.Default.Home, contentDescription = "Inicio")
         }
         Spacer(Modifier.weight(1f))

@@ -1,5 +1,6 @@
 package com.desarrolloaplicaciones.sazon
 
+import android.app.Activity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -71,6 +72,10 @@ fun ProfileEditScreen() {
 @Composable
 fun ProfileEditBodySection() {
     val context = LocalContext.current
+    val activity = context as? Activity
+    val nombre = activity?.intent?.getStringExtra("nombre")
+    val email = activity?.intent?.getStringExtra("email")
+
     Column(
         modifier = Modifier
             .background(Color(0xFFFDF5ED))
@@ -83,9 +88,12 @@ fun ProfileEditBodySection() {
             Text("Mi cuenta", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD84F2A))
             Spacer(modifier = Modifier.height(24.dp))
 
-            CustomTextField(label = "Nombre", value = "Lucas Castro", enabled = false)
-            CustomTextField(label = "Email", value = "lhlcastro@gmail.com", keyboardType = KeyboardType.Email, enabled = false)
-            CustomTextField(label = "Alias", value = "@lcastro", enabled = false)
+            if (email != null) {
+                CustomTextField(label = "Email", value = email, keyboardType = KeyboardType.Email, enabled = false)
+            }
+            if (nombre != null) {
+                CustomTextField(label = "Alias", value = nombre, enabled = false)
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -107,10 +115,6 @@ fun ProfileEditBodySection() {
                 }
             }
 
-            CustomTextField(label = "Fecha de nacimiento", value = "10/07/1998", keyboardType = KeyboardType.Number, enabled = false)
-            CustomTextField(label = "Provincia", value = "Santa Fe", enabled = false)
-            CustomTextField(label = "Localidad", value = "Rosario", enabled = false)
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -118,10 +122,10 @@ fun ProfileEditBodySection() {
 
 
 @Composable
-fun CustomTextField(label: String, value: String, keyboardType: KeyboardType = KeyboardType.Text, enabled: Boolean) {
+fun CustomTextField(label: String, value: String, keyboardType: KeyboardType = KeyboardType.Text, enabled: Boolean, onValueChange: (String) -> Unit = {}) {
     OutlinedTextField(
         value = value,
-        onValueChange = {},
+        onValueChange = onValueChange,
         label = { Text(label) },
         enabled = enabled,
         modifier = Modifier

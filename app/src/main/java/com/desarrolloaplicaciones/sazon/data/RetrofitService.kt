@@ -1,10 +1,13 @@
 package com.desarrolloaplicaciones.sazon.data;
+import retrofit2.Response
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
 import retrofit2.http.GET
 import retrofit2.http.POST;
 import retrofit2.http.Query
+import retrofit2.http.Path
+
 
 interface RetrofitService {
     @POST ("/api/login")
@@ -14,6 +17,7 @@ interface RetrofitService {
 
     @GET ("/api/recetas/ultimas")
     suspend fun getRecentRecipes(): List<RecentRecipeReturn>;
+
 
     @GET("/api/recetas/ingredientes")
     suspend fun getRecipesWithIncludeFilter(
@@ -42,12 +46,36 @@ interface RetrofitService {
     suspend fun recoverPasswordValidate(
         @Body body: RecoverPasswordValidateRequest
     ): retrofit2.Response<RecoverPasswordReturn>
+
+    @GET("/api/recetas/usuario/{usuarioId}")
+    suspend fun getRecetasPorUsuario(
+        @Path("usuarioId") usuarioId: String
+    ): List<RecentRecipeReturn>
+
+    @GET ("/api/lista")
+    suspend fun getRecetasGuardadas(): List<RecentRecipeReturn>;
+
+    @GET("/api/recetas/{id}/imagenes")
+    suspend fun obtenerImagenesReceta(@Path("id") recetaId: String): ImagenRecetaResponse
+
+    @GET("/api/usuarios/{id}")
+    suspend fun obtenerUsuario(@Path("id") usuarioId: String): UsuarioResponse
+
+    @GET("/api/tipos_receta")
+    suspend fun obtenerCategorias(): List<TiposReceta>
+
+    @POST("/api/recetas")
+    suspend fun subirReceta(
+            @Body receta: RecetaPost
+    ): Response<Unit>
 }
+
 object RetrofitServiceFactory {
     fun makeRetrofitService(): RetrofitService {
         return Retrofit.Builder()
-            .baseUrl("http://192.168.0.62:3000")
+            .baseUrl("https://recetasapp-blue.vercel.app/")
             .addConverterFactory(GsonConverterFactory.create())
             .build().create(RetrofitService::class.java)
     }
+
 }
