@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.Text
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +26,12 @@ import kotlinx.coroutines.launch
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import com.desarrolloaplicaciones.sazon.data.EmailRecovery
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.TokenManager
+import com.desarrolloaplicaciones.sazon.data.ValidarRecuperarClaveRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 class ChangePassActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +50,28 @@ class ChangePassActivity : ComponentActivity() {
 
 @Composable
 fun ChangePassScreen() {
+    val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
+
+    var codigo by remember { mutableStateOf("") }
+    var nuevaClave by remember { mutableStateOf("") }
+    var confirmacion by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = retrofitService.recuperarClave(
+                EmailRecovery(email = "franmate324@gmail.com")
+            )
+            if (response.isSuccessful) {
+                Log.d("API", "Código enviado exitosamente")
+            } else {
+                Log.e("API", "Error al enviar código: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("API", "Excepción: ${e.message}")
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,12 +82,54 @@ fun ChangePassScreen() {
             SazonHeader()
         }
         Column {
-            ChangePassBody()
+            ChangePassBody(
+                codigo = codigo,
+                onCodigoChange = { codigo = it },
+                nuevaClave = nuevaClave,
+                onNuevaClaveChange = { nuevaClave = it },
+                confirmacion = confirmacion,
+                onConfirmacionChange = { confirmacion = it }
+            )
             Spacer(modifier = Modifier.height(200.dp))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Button(
-                onClick = { /* TODO: actualizar */ },
+                onClick = { if (codigo.isBlank()) {
+                    Log.e("Validación", "El código no puede estar vacío")
+                    return@Button
+                }
+
+                    if (nuevaClave != confirmacion) {
+                        Log.e("Validación", "Las contraseñas no coinciden")
+                        return@Button
+                    }
+
+                    if (nuevaClave.isBlank() || confirmacion.isBlank()) {
+                        Log.e("Validación", "Las contraseñas no pueden estar vacías")
+                        return@Button
+                    }
+
+                    val request = ValidarRecuperarClaveRequest(
+                        email = "franmate324@gmail.com",
+                        codigo = codigo,
+                        nuevaClave = nuevaClave,
+                        confirmacion = confirmacion
+                    )
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val response = retrofitService.validarRecuperarClave(request)
+                            if (response.isSuccessful) {
+                                Log.d("API", "Contraseña cambiada exitosamente")
+                                TokenManager.removeToken();
+                                context.startActivity(Intent(context, LoginActivity::class.java));
+                            } else {
+                                Log.e("API", "Error: ${response.code()}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("API", "Excepción al validar clave: ${e.message}")
+                        }
+                    } },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
@@ -74,7 +145,12 @@ fun ChangePassScreen() {
 }
 
 @Composable
-fun ChangePassBody(){
+fun ChangePassBody(codigo: String,
+                   onCodigoChange: (String) -> Unit,
+                   nuevaClave: String,
+                   onNuevaClaveChange: (String) -> Unit,
+                   confirmacion: String,
+                   onConfirmacionChange: (String) -> Unit){
     Column(
         modifier = Modifier
             .background(Color(0xFFFDF5ED))
@@ -91,8 +167,8 @@ fun ChangePassBody(){
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
-                    value = "Codigo",
-                    onValueChange = {},
+                    value = codigo,
+                    onValueChange = onCodigoChange,
                     label = { Text("Ingresar el codigo") },
                     modifier = Modifier
                         .weight(1f)
@@ -107,8 +183,8 @@ fun ChangePassBody(){
                 }
             }
 
-            CustomTextField(label = "Nueva Contraseña", value = "Ingrese la nueva contraseña", enabled = true)
-            CustomTextField(label = "Nueva Contraseña", value = "Ingrese la nueva contraseña", enabled = true)
+            CustomTextField(label = "Nueva Contraseña", value = nuevaClave, enabled = true, onValueChange = onNuevaClaveChange)
+            CustomTextField(label = "Nueva Contraseña", value = confirmacion, enabled = true, onValueChange = onConfirmacionChange)
 
 
             Spacer(modifier = Modifier.height(16.dp))

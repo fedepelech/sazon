@@ -22,6 +22,9 @@ import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
+import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 
 class RecetasGuardadasActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,13 +46,16 @@ fun RecetasGuardadasScreen() {
     Scaffold(
         bottomBar = { BottomNavigationBar() }
     ) { innerPadding ->
-        var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
+        //var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
         val scope = rememberCoroutineScope()
+        var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
+        val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
 
         LaunchedEffect(true) {
             scope.launch {
                 try {
-                    recetas = RetrofitClient.api.obtenerRecetas()
+                    val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
+                    recetas = completarImagenesRecetas(retrofitService, recetasbase)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -84,7 +90,8 @@ fun RecetasGuardadasScreen() {
                     resenias = 11,
                     estrellas = 3,
                     ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                    imagenId = R.drawable.logo2
+                    imagenUrl = receta.imagenUrl,
+                    recetaId = receta.id
                 )
             }
 

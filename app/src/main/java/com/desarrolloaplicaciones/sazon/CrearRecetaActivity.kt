@@ -28,9 +28,24 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import com.desarrolloaplicaciones.sazon.data.Dificultad
+import com.desarrolloaplicaciones.sazon.data.IngredientePost
+import com.desarrolloaplicaciones.sazon.data.PasoPost
 import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
+import com.desarrolloaplicaciones.sazon.data.RecetaPost
+import com.desarrolloaplicaciones.sazon.data.RetrofitService
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.TiposReceta
 import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
+import kotlinx.coroutines.CoroutineScope
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.Image
+import coil.compose.rememberAsyncImagePainter
+
 
 class CrearRecetaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,18 +69,41 @@ data class PasoInput(
     var descripcion: String = ""
 )
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearRecetaScreen() {
-    val categorias = listOf("Desayuno", "Almuerzo", "Cena", "Postre", "Snack")
+    var categorias by remember { mutableStateOf<List<TiposReceta>>(emptyList()) }
+    val dificultades= listOf("Facil", "Medio", "Dificil")
     var categoriaSeleccionada by remember { mutableStateOf("") }
+    var dificultadSeleccionada by remember { mutableStateOf("") }
     var titulo by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     val unidades = listOf("ml", "gr", "un")
     var ingredientes by remember { mutableStateOf(listOf(IngredienteInput())) }
     var pasos by remember { mutableStateOf(listOf(PasoInput())) }
+    val imagenesSeleccionadas = remember { mutableStateListOf<Uri>() }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        imagenesSeleccionadas.clear()
+        imagenesSeleccionadas.addAll(uris)
+    }
+
+    val scope = rememberCoroutineScope()
+    val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
+
+    LaunchedEffect(true) {
+        scope.launch {
+            try {
+                val resultado = retrofitService.obtenerCategorias()
+                categorias = resultado;
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = { BottomNavigationBar() }
@@ -115,6 +153,62 @@ fun CrearRecetaScreen() {
                     contentAlignment = Alignment.Center
                 ) {
                     Box(modifier = Modifier.fillMaxWidth(0.93f)) {
+                        OutlinedTextField(
+                            value = descripcion,
+                            onValueChange = { descripcion = it },
+                            label = { Text("Descripcion") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                var dificultadExpanded by remember { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth(0.93f)) {
+                        ExposedDropdownMenuBox(
+                            expanded = dificultadExpanded,
+                            onExpandedChange = { dificultadExpanded = !dificultadExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = dificultadSeleccionada,
+                                onValueChange = { dificultadSeleccionada = it },
+                                readOnly = true,
+                                label = { Text("Dificultad") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = dificultadExpanded)
+                                },
+                                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                                modifier = Modifier.menuAnchor().fillMaxWidth()
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = dificultadExpanded,
+                                onDismissRequest = { dificultadExpanded = false }
+                            ) {
+                                dificultades.forEach { dificultad ->
+                                    DropdownMenuItem(
+                                        text = { Text(dificultad) },
+                                        onClick = {
+                                            dificultadSeleccionada = dificultad
+                                            dificultadExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth(0.93f)) {
                         ExposedDropdownMenuBox(
                             expanded = expanded,
                             onExpandedChange = { expanded = !expanded }
@@ -137,9 +231,9 @@ fun CrearRecetaScreen() {
                             ) {
                                 categorias.forEach { categoria ->
                                     DropdownMenuItem(
-                                        text = { Text(categoria) },
+                                        text = { Text(categoria.nombre) },
                                         onClick = {
-                                            categoriaSeleccionada = categoria
+                                            categoriaSeleccionada = categoria.nombre
                                             expanded = false
                                         }
                                     )
@@ -323,11 +417,26 @@ fun CrearRecetaScreen() {
                     Box() {
                         Button(
                             modifier = Modifier.fillMaxWidth(0.93f),
-                            onClick = { /* TODO: Acción validar */ },
+                            onClick = { launcher.launch("image/*") },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF409448))
                         ) {
                             Text("Subir Imagenes", color = Color.White)
                         }
+                    }
+                }
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    items(imagenesSeleccionadas) { uri ->
+                        Image(
+                            painter = rememberAsyncImagePainter(uri),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(100.dp)
+                                .padding(end = 8.dp)
+                        )
                     }
                 }
                 Box(
@@ -339,7 +448,8 @@ fun CrearRecetaScreen() {
                     Box() {
                         Button(
                             modifier = Modifier.fillMaxWidth(0.93f),
-                            onClick = { /* TODO: Acción validar */ },
+                            onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion,
+                                dificultadSeleccionada,ingredientes,pasos,retrofitService,scope) },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF409448))
                         ) {
                             Text("Guardar", color = Color.White)
@@ -352,6 +462,58 @@ fun CrearRecetaScreen() {
         }
     }
 }
+
+fun guardarReceta(
+    categorias: List<TiposReceta>,
+    categoriaSeleccionada: String,
+    titulo: String,
+    descripcion: String,
+    dificultadSeleccionada: String,
+    ingredientes: List<IngredienteInput>,
+    pasos: List<PasoInput>,
+    retrofitService: RetrofitService,
+    scope: CoroutineScope
+) {
+    val categoria = categorias.find { it.nombre == categoriaSeleccionada }
+
+    if (categoria != null) {
+        val recetaPost = RecetaPost(
+            nombre = titulo,
+            tipo_id = categoria.id,
+            descripcion = descripcion,
+            dificultad = Dificultad(dificultadSeleccionada),
+            ingredientes = ingredientes.mapNotNull { ing ->
+                val cantidadInt = ing.cantidad.toIntOrNull()
+                if (cantidadInt != null && ing.nombre.isNotBlank() && ing.unidad.isNotBlank()) {
+                    IngredientePost(
+                        nombre = ing.nombre,
+                        cantidad = cantidadInt,
+                        unidad = ing.unidad
+                    )
+                } else null
+            },
+            pasos = pasos.mapIndexedNotNull { index, paso ->
+                if (paso.descripcion.isNotBlank()) {
+                    PasoPost(
+                        paso_numero = index + 1,
+                        descripcion = paso.descripcion
+                    )
+                } else null
+            }
+        )
+        println(recetaPost)
+
+        scope.launch {
+            try {
+                //retrofitService.subirReceta(recetaPost)
+                // mostrar feedback si querés
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable

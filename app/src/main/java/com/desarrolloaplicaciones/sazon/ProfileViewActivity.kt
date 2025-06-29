@@ -28,6 +28,9 @@ import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
+import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 
 class ProfileViewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,13 +51,17 @@ class ProfileViewActivity : ComponentActivity() {
 
 @Composable
 fun ProfileViewScreen() {
-    var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
+    //var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
+    var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
+    val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(true) {
         scope.launch {
             try {
-                recetas = RetrofitClient.api.obtenerRecetas()
+                val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
+                recetas = completarImagenesRecetas(retrofitService, recetasbase)
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -91,7 +98,8 @@ fun ProfileViewScreen() {
                     resenias = 11,
                     estrellas = 3,
                     ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                    imagenId = R.drawable.logo2
+                    imagenUrl = receta.imagenUrl,
+                    recetaId = receta.id
                 )
             }
 
