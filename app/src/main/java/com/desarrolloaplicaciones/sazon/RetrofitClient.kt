@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
     val api: ApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://recetasapp-blue.vercel.app/api/")
+            .baseUrl("https://recetasapp-blue.vercel.app")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
