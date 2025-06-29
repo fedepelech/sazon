@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
@@ -50,6 +51,7 @@ fun RecetasGuardadasScreen() {
         //var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
         val scope = rememberCoroutineScope()
         var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
+        var cargando by remember { mutableStateOf(false) }
         val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
         val token = TokenManager.getAccessToken()
 
@@ -58,69 +60,80 @@ fun RecetasGuardadasScreen() {
                 try {
                     /*val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
                     recetas = completarImagenesRecetas(retrofitService, recetasbase)*/
-                    val recetasbase = retrofitService.getRecetasGuardadas("Bearer $token").sortedBy { it.nombre }
+                    cargando = true
+                    val recetasbase =
+                        retrofitService.getRecetasGuardadas("Bearer $token").sortedBy { it.nombre }
                     recetas = completarImagenesRecetas(retrofitService, recetasbase)
+                    cargando = false
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    cargando = false
                 }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFFDF5ED))
-                .padding(innerPadding)
-        ) {
-            // Encabezado
-            item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    SazonHeader()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Recetas Guardadas",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFD84F2A)
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
-
-            if (recetas.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFFDF5ED))
+                    .padding(innerPadding)
+            ) {
+                // Encabezado
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        SazonHeader()
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No tenés recetas guardadas",
-                            fontSize = 18.sp,
-                            color = Color.Gray
+                            "Recetas Guardadas",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD84F2A)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                }
+
+                if (recetas.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No tenés recetas guardadas",
+                                fontSize = 18.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                } else {
+                    items(recetas) { receta ->
+                        RecetaCard(
+                            titulo = receta.nombre,
+                            resenias = 11,
+                            estrellas = 3,
+                            ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
+                            imagenUrl = receta.imagenUrl,
+                            recetaId = receta.id
                         )
                     }
                 }
-            } else {
-                items(recetas) { receta ->
-                    RecetaCard(
-                        titulo = receta.nombre,
-                        resenias = 11,
-                        estrellas = 3,
-                        ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                        imagenUrl = receta.imagenUrl,
-                        recetaId = receta.id
-                    )
-                }
+
             }
 
+            if (cargando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x80FFFFFF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFD84F2A))
+                }
+            }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RecetasGuardadasPreview() {
-    RecetasGuardadasScreen()
 }

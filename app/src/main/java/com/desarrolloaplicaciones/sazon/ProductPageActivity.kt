@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -36,6 +37,9 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import com.desarrolloaplicaciones.sazon.data.AddToListRequest
 import com.desarrolloaplicaciones.sazon.data.ComentarioModel
 import com.desarrolloaplicaciones.sazon.data.ComentarioRequest
@@ -52,18 +56,27 @@ class ProductPageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val token = TokenManager.getAccessToken()
-        val recetaId = intent?.getStringExtra("recetaId") ?: "641F8DB6-89CA-45F8-BA3B-5CC01A4A9DBE"
+        val recetaId = intent?.getStringExtra("recetaId")
+        if (recetaId == null) {
+            Toast.makeText(this, "Error: recetaId no encontrado", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, HomeActivity::class.java)
+            startActivity(intent)
+            finish()
+            return
+        }
         setContent {
             ProductPageContent(recetaId = recetaId, token = token)
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProductPageContent(recetaId: String, token: String?) {
     var receta by remember { mutableStateOf<RecetaDetalle?>(null) }
     var comentarioResponse by remember { mutableStateOf<ComentarioResponse?>(null) }
     var imagenPrincipal by remember { mutableStateOf<String?>(null) }
+    var imagenesCarousel by remember { mutableStateOf<List<String>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var reloadTrigger by remember { mutableStateOf(0) }
@@ -85,8 +98,12 @@ fun ProductPageContent(recetaId: String, token: String?) {
                     imagenPrincipal = imagenesResponse.imagenes
                         .firstOrNull { it.esPrincipal }?.url
                         ?: imagenesResponse.imagenes.firstOrNull()?.url
+
+                    // Actualizar la lista de imágenes para el carousel
+                    imagenesCarousel = imagenesResponse.imagenes.map { it.url }
                 } catch (e: Exception) {
                     imagenPrincipal = null
+                    imagenesCarousel = emptyList()
                 }
             }
 
@@ -137,18 +154,107 @@ fun ProductPageContent(recetaId: String, token: String?) {
                 ImagenSazon()
                 RecetaTitulo(nombre = receta!!.nombre)
                 RecetaUtility(receta = receta, estadisticas = comentarioResponse?.estadisticas)
-                ImagenProducto(imagenUrl = imagenPrincipal)
+                CarouselImagenes(imagenes = imagenesCarousel)
                 ListaIngredientesAPI(ingredientes = receta!!.ingredientes)
                 ListaPasosAPI(pasos = receta!!.pasos)
                 VideoReceta(videoUrl = "https://www.youtube.com/watch?v=ejemplo")
                 CalculadoraIngredientesAPI(ingredientes = receta!!.ingredientes)
-//                AgregarComentario(
-//                    recetaId = recetaId,
-//                    token = token,
-//                    onComentarioAgregado = recargarComentarios
-//                )
+                AgregarComentario(
+                    recetaId = recetaId,
+                    token = token,
+                    onComentarioAgregado = recargarComentarios
+                )
                 ListaComentariosAPI(comentarioResponse = comentarioResponse)
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun CarouselImagenes(imagenes: List<String>) {
+    if (imagenes.isEmpty()) {
+        // Mostrar imagen por defecto si no hay imágenes
+        Image(
+            painter = painterResource(id = R.drawable.logo2),
+            contentDescription = "Imagen por defecto",
+            modifier = Modifier
+                .size(200.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop
+        )
+        return
+    }
+
+    val pagerState = rememberPagerState(pageCount = { imagenes.size })
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imagenes[page])
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Imagen ${page + 1} de la receta",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.FillBounds,
+                placeholder = painterResource(id = R.drawable.logo2),
+                error = painterResource(id = R.drawable.logo2)
+            )
+        }
+
+        // Indicadores de página (dots)
+        if (imagenes.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                repeat(imagenes.size) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                color = if (index == pagerState.currentPage)
+                                    Color.White else Color.White.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            )
+                    )
+                }
+            }
+        }
+
+        // Contador de páginas
+        if (imagenes.size > 1) {
+            Text(
+                text = "${pagerState.currentPage + 1}/${imagenes.size}",
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        Color.Black.copy(alpha = 0.6f),
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
         }
     }
 }
@@ -246,25 +352,6 @@ fun RecetaUtility(receta: RecetaDetalle? = null, estadisticas: EstadisticasComen
                 intent.putExtra("nombreUsuario", receta?.autor)
                 context.startActivity(intent)
             }
-        )
-    }
-}
-
-@Composable
-fun ImagenProducto(imagenUrl: String? = null) {
-    if (imagenUrl != null) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imagenUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = "Imagen de la receta",
-            modifier = Modifier
-                .size(200.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.Crop,
-            placeholder = painterResource(id = R.drawable.logo2),
-            error = painterResource(id = R.drawable.logo2)
         )
     }
 }
@@ -585,7 +672,7 @@ fun AgregarComentario(recetaId: String, token: String?, onComentarioAgregado: ()
                     valoracion = valoracion
                 )
 
-                retrofit.crearComentario(comentarioRequest)
+                retrofit.crearComentario("Bearer $token", comentarioRequest)
                 texto = ""
                 valoracion = 0
                 successMessage = "¡Comentario enviado exitosamente!"

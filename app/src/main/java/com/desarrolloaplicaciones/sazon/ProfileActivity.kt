@@ -183,7 +183,7 @@ fun BottomNavigationBar() {
             Icon(Icons.Default.AddCircle, contentDescription = "Agregar")
         }
         Spacer(Modifier.weight(1f))
-        IconButton(onClick = {context.startActivity(Intent(context, ProfileActivity::class.java))}) {
+        IconButton(onClick = { context.startActivity(Intent(context, HomeActivity::class.java)) }) {
             Icon(Icons.Default.ArrowBack, contentDescription = "Más")
         }
     }

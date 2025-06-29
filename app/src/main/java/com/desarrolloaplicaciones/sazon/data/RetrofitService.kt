@@ -88,7 +88,10 @@ interface RetrofitService {
     suspend fun obtenerComentariosPorReceta(@Path("recetaId") recetaId: String): ComentarioResponse
 
     @POST("api/comentarios")
-    suspend fun crearComentario(@Body comentario: ComentarioRequest): ComentarioModel
+    suspend fun crearComentario(
+        @Header("Authorization") token: String,
+        @Body comentario: ComentarioRequest
+    ): ComentarioModel
 
     @POST("/api/recetas")
     suspend fun subirReceta(
