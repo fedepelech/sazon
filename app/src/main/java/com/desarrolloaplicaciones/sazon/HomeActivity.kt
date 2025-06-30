@@ -52,6 +52,14 @@ import com.desarrolloaplicaciones.sazon.data.RecentRecipeReturn
 import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.Recipe
 import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas2
+
+// ===== ENUMERACIÓN FilterMode =====
+enum class FilterMode {
+    NONE,       // getRecipesByName
+    INCLUDE,    // getRecipesWithIncludeFilter
+    EXCLUDE     // getRecipesWithExcludeFilter
+}
 
 class HomeActivity : ComponentActivity() {
     fun getRecipesList(onRecipesFetched: (List<RecetaConImagen>) -> Unit) {
@@ -91,29 +99,39 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
-    // Nueva función específica para búsquedas
-    fun searchRecipes(query: String, onRecipesFetched: (List<RecetaConImagen>) -> Unit, onError: (String) -> Unit, excludeFilter: Boolean) {
+    // ===== FUNCIÓN CORREGIDA: searchRecipes con FilterMode =====
+    fun searchRecipes(
+        query: String,
+        mode: FilterMode,
+        onRecipesFetched: (List<RecetaConImagen>) -> Unit,
+        onError: (String) -> Unit
+    ) {
         val retrofit = RetrofitServiceFactory.makeRetrofitService()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = if (excludeFilter) {
-                    retrofit.getRecipesWithExcludeFilter(query)
-                } else {
-                    retrofit.getRecipesWithIncludeFilter(query)
+                val response = when (mode) {
+                    FilterMode.NONE -> retrofit.getRecipesByName(query)
+                    FilterMode.INCLUDE -> retrofit.getRecipesWithIncludeFilter(query)
+                    FilterMode.EXCLUDE -> retrofit.getRecipesWithExcludeFilter(query)
                 }
 
                 withContext(Dispatchers.Main) {
-                    if (response?.body()?.recetas?.isNotEmpty() == true) {
-                        val recipesWithImages = completarImagenesRecetas(
+                    if (response.isNotEmpty()) {
+                        val recipesWithImages = completarImagenesRecetas2(
                             retrofit,
-                            response.body()!!
+                            response
                         );
                         onRecipesFetched(recipesWithImages)
                     } else {
                         onRecipesFetched(emptyList())
+                        val modeText = when (mode) {
+                            FilterMode.NONE -> "con el nombre"
+                            FilterMode.INCLUDE -> "que incluyen"
+                            FilterMode.EXCLUDE -> "que excluyen"
+                        }
                         Toast.makeText(
                             this@HomeActivity,
-                            "No se encontraron recetas para '$query'",
+                            "No se encontraron recetas $modeText '$query'",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -132,7 +150,7 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
-    // FUNCIÓN NUEVA: Búsqueda por tipo de receta
+    // FUNCIÓN: Búsqueda por tipo de receta
     fun searchRecipesByType(
         recipeType: String,
         onRecipesFetched: (List<RecetaConImagen>) -> Unit,
@@ -142,12 +160,11 @@ class HomeActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = retrofit.getRecipesByType(recipeType)
-
                 withContext(Dispatchers.Main) {
-                    if (response?.body()?.recetas?.isNotEmpty() == true) {
-                        val recipesWithImages = completarImagenesRecetas(
+                    if (response.isNotEmpty()) {
+                        val recipesWithImages = completarImagenesRecetas2(
                             retrofit,
-                            response.body()!!
+                            response
                         );
                         onRecipesFetched(recipesWithImages)
                     } else {
@@ -266,38 +283,26 @@ fun HomeScreen(
         }
     }
 
-    // Función para manejar búsquedas (MODIFICADA para resetear filtros)
-    val handleSearch: (String, Boolean) -> Unit = { query, excludeFilter ->
-        if (query.isNotEmpty()) {
-            selectedFilter = null // Limpiar filtro seleccionado
-            selectedFilterIndex = -1 // Resetear índice de filtro
-            currentSearchQuery = query
-            isLoading = true
-            errorMessage = null
+    // ===== FUNCIÓN CORREGIDA: handleSearch con FilterMode =====
+    val handleSearch: (String, FilterMode) -> Unit = { query, mode ->
+        selectedFilter = null // Limpiar filtro seleccionado
+        selectedFilterIndex = -1 // Resetear índice de filtro
+        currentSearchQuery = query
+        isLoading = true
+        errorMessage = null
 
-            activity.searchRecipes(
-                query = query,
-                onRecipesFetched = { searchResults ->
-                    recipes = searchResults
-                    isLoading = false
-                },
-                onError = { error ->
-                    errorMessage = error
-                    isLoading = false
-                },
-                excludeFilter = excludeFilter
-            )
-        } else {
-            // Si no hay query, cargar todas las recetas
-            selectedFilter = null
-            selectedFilterIndex = -1 // Resetear índice de filtro
-            currentSearchQuery = ""
-            isLoading = true
-            activity.getRecipesList { fetchedRecipes ->
-                recipes = fetchedRecipes
+        activity.searchRecipes(
+            query = query,
+            mode = mode,
+            onRecipesFetched = { searchResults ->
+                recipes = searchResults
+                isLoading = false
+            },
+            onError = { error ->
+                errorMessage = error
                 isLoading = false
             }
-        }
+        )
     }
 
     // LaunchedEffect para cargar las recetas y los filtros al iniciar la pantalla
@@ -369,8 +374,8 @@ fun HomeScreen(
 
             item {
                 SearchSection(
-                    onSearch = handleSearch,
-                    currentQuery = currentSearchQuery
+                    currentQuery = currentSearchQuery,
+                    onSearch = handleSearch
                 )
             }
 
@@ -541,22 +546,26 @@ fun HomeScreen(
     }
 }
 
+// ===== COMPONENTE CORREGIDO: SearchSection =====
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchSection(
-    onSearch: (String, Boolean) -> Unit,
-    currentQuery: String = ""
+    currentQuery: String = "",
+    onSearch: (String, FilterMode) -> Unit
 ) {
     var searchText by remember { mutableStateOf(currentQuery) }
-    var excludeFilter by remember { mutableStateOf(false) }
+    var mode by remember { mutableStateOf(FilterMode.NONE) }
 
     SearchBar(
         inputField = {
             SearchBarDefaults.InputField(
                 query = searchText,
                 onQueryChange = { searchText = it },
-                onSearch = { query ->
-                    onSearch(query.trim(), excludeFilter)
+                onSearch = { rawQuery ->
+                    val query = rawQuery.trim()
+                    if (query.isNotEmpty()) {
+                        onSearch(query, mode)
+                    }
                 },
                 expanded = false,
                 onExpandedChange = { },
@@ -565,12 +574,29 @@ fun SearchSection(
                     Icon(Icons.Default.Search, contentDescription = "Buscar")
                 },
                 trailingIcon = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        // Checkbox "Excluir"
                         Checkbox(
-                            checked = excludeFilter,
-                            onCheckedChange = { excludeFilter = it }
+                            checked = mode == FilterMode.EXCLUDE,
+                            onCheckedChange = { checked ->
+                                mode = if (checked) FilterMode.EXCLUDE else FilterMode.NONE
+                            }
                         )
                         Text("Excluir", fontSize = 12.sp)
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Checkbox "Incluir"
+                        Checkbox(
+                            checked = mode == FilterMode.INCLUDE,
+                            onCheckedChange = { checked ->
+                                mode = if (checked) FilterMode.INCLUDE else FilterMode.NONE
+                            }
+                        )
+                        Text("Incluir", fontSize = 12.sp)
                     }
                 }
             )
@@ -630,7 +656,6 @@ fun FilterSection(
 
 @Composable
 fun RecipeCard(recipe: RecetaConImagen) {
-
     val context = LocalContext.current
     Card(
         modifier = Modifier

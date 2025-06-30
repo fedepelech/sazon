@@ -23,16 +23,20 @@ interface RetrofitService {
     @GET ("/api/recetas/ultimas")
     suspend fun getRecentRecipes(): Response<RecentRecipesWrapper>;
 
+    @GET("/api/recetas/nombre")
+    suspend fun getRecipesByName(
+        @Query("query") name: String)
+            : List<RecentRecipeReturn2>;
 
     @GET("/api/recetas/ingredientes")
     suspend fun getRecipesWithIncludeFilter(
         @Query("incluye") ingredient: String)
-    : Response<RecentRecipesWrapper>;
+    : List<RecentRecipeReturn2>;
 
     @GET("/api/recetas/ingredientes")
     suspend fun getRecipesWithExcludeFilter(
         @Query("excluye") ingredient: String)
-            : Response<RecentRecipesWrapper>;
+            : List<RecentRecipeReturn2>;
 
     @GET("/api/tipos_receta")
     suspend fun getRecipeTypes(): List<RecipeTypeReturn>;
@@ -40,7 +44,7 @@ interface RetrofitService {
     @GET("/api/recetas/tipo")
     suspend fun getRecipesByType(
         @Query("tipo") type: String
-    ): Response<RecentRecipesWrapper>;
+    ): List<RecentRecipeReturn2>;
 
     @POST("/api/recuperar-clave")
     suspend fun recoverPassword(
