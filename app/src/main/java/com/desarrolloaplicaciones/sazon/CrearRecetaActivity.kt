@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
 import com.desarrolloaplicaciones.sazon.data.Ingrediente
 import com.desarrolloaplicaciones.sazon.data.TokenManager
+import com.desarrolloaplicaciones.sazon.data.video
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -262,9 +263,7 @@ fun CrearRecetaScreen() {
                     }
                 }
 
-
                 ingredientes.forEachIndexed { index, ingrediente ->
-                    var ingredienteExpanded by remember(key1 = index) { mutableStateOf(false) }
                     var unidadExpanded by remember(key1 = index) { mutableStateOf(false) }
 
                     Row(
@@ -273,42 +272,17 @@ fun CrearRecetaScreen() {
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Dropdown de ingredientes disponibles
-                        ExposedDropdownMenuBox(
-                            expanded = ingredienteExpanded,
-                            onExpandedChange = { ingredienteExpanded = !ingredienteExpanded }
-                        ) {
-                            OutlinedTextField(
-                                value = ingrediente.nombre ?: "",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Ingrediente") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = ingredienteExpanded)
-                                },
-                                colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                                modifier = Modifier
-                                    .menuAnchor()
-                                    .width(160.dp)
-                            )
-
-                            ExposedDropdownMenu(
-                                expanded = ingredienteExpanded,
-                                onDismissRequest = { ingredienteExpanded = false }
-                            ) {
-                                ingredientesDisponibles.forEach { nombre ->
-                                    DropdownMenuItem(
-                                        text = { Text(nombre.nombre) },
-                                        onClick = {
-                                            ingredientes = ingredientes.toMutableList().also {
-                                                it[index] = it[index].copy(nombre = nombre.nombre)
-                                            }
-                                            ingredienteExpanded = false
-                                        }
-                                    )
+                        // TextField editable para el nombre del ingrediente (sin dropdown)
+                        OutlinedTextField(
+                            value = ingrediente.nombre ?: "",
+                            onValueChange = { newNombre ->
+                                ingredientes = ingredientes.toMutableList().also {
+                                    it[index] = it[index].copy(nombre = newNombre)
                                 }
-                            }
-                        }
+                            },
+                            label = { Text("Ingrediente") },
+                            modifier = Modifier.width(160.dp)
+                        )
 
                         Spacer(modifier = Modifier.width(8.dp))
 
@@ -326,7 +300,7 @@ fun CrearRecetaScreen() {
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        // Dropdown de unidades
+                        // Dropdown de unidades (igual que antes)
                         ExposedDropdownMenuBox(
                             expanded = unidadExpanded,
                             onExpandedChange = { unidadExpanded = !unidadExpanded }
@@ -394,6 +368,7 @@ fun CrearRecetaScreen() {
                         }
                     }
                 }
+
 
                 pasos.forEachIndexed { index, paso ->
                         Row(
@@ -499,7 +474,7 @@ fun CrearRecetaScreen() {
                     Box() {
                         Button(
                             modifier = Modifier.fillMaxWidth(0.93f),
-                            onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope, context, imagenes = imagenesSeleccionadas) },
+                            onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, link, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope, context, imagenes = imagenesSeleccionadas) },
                             //onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope) },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF409448))
                         ) {
@@ -526,63 +501,14 @@ fun crearParteImagen(uri: Uri, context: Context): MultipartBody.Part {
 }
 
 
-/*fun guardarReceta(
-    categorias: List<TiposReceta>,
-    categoriaSeleccionada: String,
-    titulo: String,
-    descripcion: String,
-    dificultadSeleccionada: String,
-    ingredientes: List<IngredienteInput>,
-    pasos: List<PasoInput>,
-    retrofitService: RetrofitService,
-    scope: CoroutineScope
-) {
-    val categoria = categorias.find { it.nombre == categoriaSeleccionada }
 
-    if (categoria != null) {
-        val recetaPost = RecetaPost(
-            nombre = titulo,
-            tipo_id = categoria.id,
-            descripcion = descripcion,
-            dificultad = Dificultad(dificultadSeleccionada),
-            ingredientes = ingredientes.mapNotNull { ing ->
-                val cantidadInt = ing.cantidad.toInt()
-                if (cantidadInt != null && ing.nombre.isNotBlank() && ing.unidad.isNotBlank()) {
-                    IngredientePost(
-                        nombre = ing.nombre,
-                        cantidad = cantidadInt,
-                        unidad = ing.unidad
-                    )
-                } else null
-            },
-            pasos = pasos.mapIndexedNotNull { index, paso ->
-                if (paso.descripcion.isNotBlank()) {
-                    PasoPost(
-                        paso_numero = index + 1,
-                        descripcion = paso.descripcion
-                    )
-                } else null
-            }
-        )
-        println(recetaPost)
-
-        scope.launch {
-            try {
-                val accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJEQjNENzE0Qi05RTcyLTQxOTYtQTEyMC05RTdFQ0U1ODg0MTciLCJpYXQiOjE3NTEyMTY0NTQsImV4cCI6MTc1MTMwMjg1NH0.Gj-oLJlFfOoyxX3kW1hH0DP4vHrR2mbB-lGfX4e7Fbc"
-                val response = retrofitService.subirReceta("Bearer $accessToken", recetaPost)
-                println(response)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-}*/
 
 fun guardarReceta(
     categorias: List<TiposReceta>,
     categoriaSeleccionada: String,
     titulo: String,
     descripcion: String,
+    link: String,
     dificultadSeleccionada: String,
     ingredientes: List<IngredienteInput>,
     pasos: List<PasoInput>,
@@ -621,6 +547,9 @@ fun guardarReceta(
                     val recetaId = recetaResponse?.id
 
                     if (recetaId != null) {
+                        val video = video(link,"")
+                        val videoResponse = retrofitService.subirVideoReceta(recetaId,"Bearer $token", video)
+                        println(videoResponse)
                         imagenes.forEach { uri ->
                             val part = crearParteImagen(uri, context)
                             val imagenResponse =
