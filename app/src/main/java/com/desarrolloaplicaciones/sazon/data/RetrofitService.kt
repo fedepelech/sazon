@@ -114,7 +114,8 @@ interface RetrofitService {
                                   @Header("Authorization") token: String,): Response<Unit>
 
 
-
+    @GET("/api/recetas/{recetaId}/videos")
+    suspend fun obtenerVideosReceta(@Path("recetaId") recetaId: String): RecetaConVideosResponse
 
     @POST("/api/recetas/{recetaId}/videos/upload")
     suspend fun subirVideoReceta(

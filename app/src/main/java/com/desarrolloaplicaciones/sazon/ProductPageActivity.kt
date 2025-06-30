@@ -79,6 +79,7 @@ fun ProductPageContent(recetaId: String, token: String?) {
     var comentarioResponse by remember { mutableStateOf<ComentarioResponse?>(null) }
     var imagenPrincipal by remember { mutableStateOf<String?>(null) }
     var imagenesCarousel by remember { mutableStateOf<List<String>>(emptyList()) }
+    var videoUrl by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var reloadTrigger by remember { mutableStateOf(0) }
@@ -107,8 +108,14 @@ fun ProductPageContent(recetaId: String, token: String?) {
                     imagenPrincipal = null
                     imagenesCarousel = emptyList()
                 }
-            }
 
+                try {
+                    val videosResponse = retrofit.obtenerVideosReceta(recetaId)
+                    videoUrl = videosResponse.videos.firstOrNull()?.url
+                } catch (e: Exception) {
+                    videoUrl = null;
+                }
+            }
             comentarioResponse = retrofit.obtenerComentariosPorReceta(recetaId)
 
         } catch (e: Exception) {
@@ -159,7 +166,7 @@ fun ProductPageContent(recetaId: String, token: String?) {
                 CarouselImagenes(imagenes = imagenesCarousel)
                 ListaIngredientesAPI(ingredientes = receta!!.ingredientes)
                 ListaPasosAPI(pasos = receta!!.pasos)
-                VideoReceta(videoUrl = "https://www.youtube.com/watch?v=ejemplo")
+                VideoReceta(videoUrl = videoUrl)
                 CalculadoraIngredientesAPI(ingredientes = receta!!.ingredientes)
 
                 // Solo mostrar AgregarComentario si el usuario está autenticado
@@ -535,14 +542,22 @@ fun ListaPasosAPI(pasos: List<PasoDetalle>) {
 }
 
 @Composable
-fun VideoReceta(videoUrl: String = "https://www.youtube.com/watch?v=ejemplo") {
+fun VideoReceta(videoUrl: String?) {
     val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                val intent = Intent(Intent.ACTION_VIEW, videoUrl.toUri())
-                context.startActivity(intent)
+                if (!videoUrl.isNullOrEmpty()) {
+                    val intent = Intent(Intent.ACTION_VIEW, videoUrl.toUri())
+                    context.startActivity(intent)
+                } else {
+                    Toast.makeText(
+                        context,
+                        "No hay video asociado a esta receta",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,

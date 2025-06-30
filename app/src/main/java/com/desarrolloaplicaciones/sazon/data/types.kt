@@ -279,3 +279,28 @@ data class video(
     val url_video: String,
     val nombre_archivo: String
 )
+
+data class RecetaConVideosResponse (
+    @SerializedName("receta_id")
+    val recetaId: String,
+    @SerializedName("receta_titulo")
+    val recetaTitulo: String,
+    @SerializedName("receta_descripcion")
+    val recetaDescripcion: String,
+    @SerializedName("fecha_creacion")
+    val fechaCreacion: String,
+    val videos: List<VideoReceta>,
+    val total: Int
+)
+
+data class VideoReceta(
+    val id: String,
+    val url: String,
+    @SerializedName("nombre_archivo")
+    val nombreArchivo: String,
+    val orden: Int,
+    @SerializedName("es_principal")
+    val esPrincipal: Boolean,
+    @SerializedName("fecha_subida")
+    val fechaSubida: String
+)
