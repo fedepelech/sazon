@@ -41,6 +41,7 @@ import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.desarrolloaplicaciones.sazon.data.TokenManager
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas2
 
 class MisRecetasActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,7 +71,7 @@ fun MisRecetasScreen() {
         scope.launch {
             try {
                 val recetasbase = retrofitService.getRecetasPorUsuario(usuario_id).sortedBy { it.nombre }
-                recetas = completarImagenesRecetas(retrofitService, recetasbase)
+                recetas = completarImagenesRecetas2(retrofitService, recetasbase)
                 loading = false
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -210,24 +211,6 @@ fun RecetaCard(
                 color = Color(0xFF388E3C)
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "($resenias reseñas)",
-                    fontStyle = FontStyle.Italic,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Ingredientes:",
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFD84F2A)
-            )
-            Text(
-                text = ingredientes.joinToString(", "),
-                color = Color(0xFFFFA000),
-            )
         }
     }
 }

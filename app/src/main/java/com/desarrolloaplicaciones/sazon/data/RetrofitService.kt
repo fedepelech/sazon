@@ -21,18 +21,18 @@ interface RetrofitService {
     ): LoginReturn;
 
     @GET ("/api/recetas/ultimas")
-    suspend fun getRecentRecipes(): List<RecentRecipeReturn>;
+    suspend fun getRecentRecipes(): Response<RecentRecipesWrapper>;
 
 
     @GET("/api/recetas/ingredientes")
     suspend fun getRecipesWithIncludeFilter(
         @Query("incluye") ingredient: String)
-    : List<RecentRecipeReturn>;
+    : Response<RecentRecipesWrapper>;
 
     @GET("/api/recetas/ingredientes")
     suspend fun getRecipesWithExcludeFilter(
         @Query("excluye") ingredient: String)
-            : List<RecentRecipeReturn>;
+            : Response<RecentRecipesWrapper>;
 
     @GET("/api/tipos_receta")
     suspend fun getRecipeTypes(): List<RecipeTypeReturn>;
@@ -40,7 +40,7 @@ interface RetrofitService {
     @GET("/api/recetas/tipo")
     suspend fun getRecipesByType(
         @Query("tipo") type: String
-    ): List<RecentRecipeReturn>;
+    ): Response<RecentRecipesWrapper>;
 
     @POST("/api/recuperar-clave")
     suspend fun recoverPassword(
@@ -55,10 +55,10 @@ interface RetrofitService {
     @GET("/api/recetas/usuario/{usuarioId}")
     suspend fun getRecetasPorUsuario(
         @Path("usuarioId") usuarioId: String
-    ): List<RecentRecipeReturn>
+    ): List<RecentRecipeReturn2>
 
     @GET("/api/lista")
-    suspend fun getRecetasGuardadas(@Header("Authorization") token: String): List<RecentRecipeReturn>;
+    suspend fun getRecetasGuardadas(@Header("Authorization") token: String): Response<RecentRecipesWrapper>;
 
     @POST("/api/lista")
     suspend fun addToList(

@@ -60,22 +60,19 @@ class HomeActivity : ComponentActivity() {
             try {
                 val response = retrofit.getRecentRecipes()
                 withContext(Dispatchers.Main) {
-                    if (response.isNotEmpty()) {
-                        val recipesWithImages = completarImagenesRecetas(
+                    val recipesWithImages = response.body()?.let {
+                        completarImagenesRecetas(
                             retrofit,
-                            response
-                        );
+                            it
+                        )
+                    };
+                    if (recipesWithImages != null) {
                         onRecipesFetched(recipesWithImages)
-                    } else {
-                        Toast.makeText(
-                            this@HomeActivity,
-                            "No se encontraron recetas.",
-                            Toast.LENGTH_SHORT
-                        ).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    Log.e("ERROR_RECETAS", "Excepción al cargar recetas: ${e.message}", e)
                     if (e is retrofit2.HttpException && e.code() >= 400) {
                         Toast.makeText(
                             this@HomeActivity,
@@ -106,10 +103,10 @@ class HomeActivity : ComponentActivity() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    if (response.isNotEmpty()) {
+                    if (response?.body()?.recetas?.isNotEmpty() == true) {
                         val recipesWithImages = completarImagenesRecetas(
                             retrofit,
-                            response
+                            response.body()!!
                         );
                         onRecipesFetched(recipesWithImages)
                     } else {
@@ -147,10 +144,10 @@ class HomeActivity : ComponentActivity() {
                 val response = retrofit.getRecipesByType(recipeType)
 
                 withContext(Dispatchers.Main) {
-                    if (response.isNotEmpty()) {
+                    if (response?.body()?.recetas?.isNotEmpty() == true) {
                         val recipesWithImages = completarImagenesRecetas(
                             retrofit,
-                            response
+                            response.body()!!
                         );
                         onRecipesFetched(recipesWithImages)
                     } else {

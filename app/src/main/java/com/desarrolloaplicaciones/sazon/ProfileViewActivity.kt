@@ -59,8 +59,8 @@ fun ProfileViewScreen() {
     LaunchedEffect(true) {
         scope.launch {
             try {
-                val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
-                recetas = completarImagenesRecetas(retrofitService, recetasbase)
+                val recetasbase = retrofitService.getRecentRecipes().body()
+                recetas = recetasbase?.let { completarImagenesRecetas(retrofitService, it) }!!
                 /*val recetasbase = retrofitService.getRecetasPorUsuario(usuario_id).sortedBy { it.nombre }
                 recetas = completarImagenesRecetas(retrofitService, recetasbase)*/
 

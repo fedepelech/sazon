@@ -62,8 +62,8 @@ fun RecetasGuardadasScreen() {
                     recetas = completarImagenesRecetas(retrofitService, recetasbase)*/
                     cargando = true
                     val recetasbase =
-                        retrofitService.getRecetasGuardadas("Bearer $token").sortedBy { it.nombre }
-                    recetas = completarImagenesRecetas(retrofitService, recetasbase)
+                        retrofitService.getRecetasGuardadas("Bearer $token").body()
+                    recetas = recetasbase?.let { completarImagenesRecetas(retrofitService, it) }!!
                     cargando = false
                 } catch (e: Exception) {
                     e.printStackTrace()

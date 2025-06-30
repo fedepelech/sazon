@@ -13,10 +13,46 @@ data class Recipe (
     val createdAt: String
 )
 
-data class RecentRecipeReturn (
+data class RecentRecipeReturn2 (
     val id: String,
     val nombre: String,
     @SerializedName("created_at") val createdAt: String
+)
+
+/*data class RecentRecipesResponse(
+    val success: Boolean,
+    val count: Int,
+    val limite: Int,
+    @SerializedName("ultimas_recetas") val ultimasRecetas: List<RecentRecipeReturn>,
+    val message: String
+)*/
+
+data class RecentRecipeReturn(
+    val id: String,
+    val nombre: String,
+    val descripcion: String,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("tipo_receta_id") val tipoRecetaId: Int,
+    @SerializedName("nivel_dificultad_id") val nivelDificultadId: Int,
+    val autor: Autor,
+    val valoraciones: Valoraciones
+)
+
+data class Autor(
+    val id: String,
+    val nombre: String
+)
+
+data class Valoraciones(
+    val cantidad: Int,
+    val promedio: Float?,
+    @SerializedName("total_comentarios") val totalComentarios: Int,
+    @SerializedName("valoracion_maxima") val valoracionMaxima: Float?,
+    @SerializedName("valoracion_minima") val valoracionMinima: Float?
+)
+
+data class RecentRecipesWrapper(
+    @SerializedName("ultimas_recetas") val recetas: List<RecentRecipeReturn>
 )
 
 data class LoginRequest (
