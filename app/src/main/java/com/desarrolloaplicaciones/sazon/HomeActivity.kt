@@ -711,63 +711,72 @@ fun BottomNavigationBar(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = if (isAuthenticated) {
+                Arrangement.SpaceEvenly
+            } else {
+                Arrangement.SpaceAround
+            },
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Botón Home
             IconButton(
-                onClick = { /* Navegación Home */ },
-                modifier = Modifier.size(48.dp)
+                onClick = {
+                    // Navegar a Home si no estamos ya aquí
+                    if (context !is HomeActivity) {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                }
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = Color(0xFF409448)
+                )
+            }
+
+            // Botón flotante central - SOLO mostrar si está autenticado
+            if (isAuthenticated) {
+                FloatingActionButton(
+                    onClick = {
+                        val intent = Intent(context, CrearRecetaActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    containerColor = Color(0xFF409448),
+                    contentColor = Color.White
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = "Home",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(24.dp)
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar receta"
                     )
                 }
             }
 
-            // Botón flotante central
-            FloatingActionButton(
-                onClick = {
-                    val intent = Intent(context, CrearRecetaActivity::class.java)
-                    context.startActivity(intent)
-                },
-                containerColor = Color(0xFF4CAF50),
-                contentColor = Color.White,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            // Botón Perfil o espacio vacío
+            // Botón Perfil
             Box(
                 modifier = Modifier.size(48.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (isAuthenticated) {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                } else {
                     IconButton(
-                        onClick = onProfileClick,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Perfil",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(24.dp)
-                            )
+                        onClick = {
+                            val intent = Intent(context, LoginActivity::class.java)
+                            context.startActivity(intent)
                         }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Login,
+                            contentDescription = "Iniciar sesión",
+                            tint = Color(0xFF409448)
+                        )
                     }
                 }
             }

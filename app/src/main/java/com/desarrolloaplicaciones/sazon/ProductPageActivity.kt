@@ -51,6 +51,8 @@ import com.desarrolloaplicaciones.sazon.data.PasoDetalle
 import com.desarrolloaplicaciones.sazon.data.RecetaDetalle
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
+import androidx.compose.material.icons.filled.StarHalf
+import androidx.compose.material.icons.filled.StarBorder
 
 class ProductPageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +83,8 @@ fun ProductPageContent(recetaId: String, token: String?) {
     var error by remember { mutableStateOf<String?>(null) }
     var reloadTrigger by remember { mutableStateOf(0) }
     val retrofit = RetrofitServiceFactory.makeRetrofitService()
+    val isAuthenticated = !TokenManager.getAccessToken().isNullOrEmpty()
+    val context = LocalContext.current
 
     val recargarComentarios: () -> Unit = {
         reloadTrigger++
@@ -95,12 +99,10 @@ fun ProductPageContent(recetaId: String, token: String?) {
                 receta = retrofit.obtenerRecetaPorId(recetaId)
                 try {
                     val imagenesResponse = retrofit.obtenerImagenesReceta(recetaId)
+                    imagenesCarousel = imagenesResponse.imagenes.map { it.url }
                     imagenPrincipal = imagenesResponse.imagenes
                         .firstOrNull { it.esPrincipal }?.url
                         ?: imagenesResponse.imagenes.firstOrNull()?.url
-
-                    // Actualizar la lista de imágenes para el carousel
-                    imagenesCarousel = imagenesResponse.imagenes.map { it.url }
                 } catch (e: Exception) {
                     imagenPrincipal = null
                     imagenesCarousel = emptyList()
@@ -153,17 +155,59 @@ fun ProductPageContent(recetaId: String, token: String?) {
             ) {
                 ImagenSazon()
                 RecetaTitulo(nombre = receta!!.nombre)
-                RecetaUtility(receta = receta, estadisticas = comentarioResponse?.estadisticas)
+                RecetaUtility(receta = receta, estadisticas = comentarioResponse?.estadisticas, isAuthenticated = isAuthenticated)
                 CarouselImagenes(imagenes = imagenesCarousel)
                 ListaIngredientesAPI(ingredientes = receta!!.ingredientes)
                 ListaPasosAPI(pasos = receta!!.pasos)
                 VideoReceta(videoUrl = "https://www.youtube.com/watch?v=ejemplo")
                 CalculadoraIngredientesAPI(ingredientes = receta!!.ingredientes)
-                AgregarComentario(
-                    recetaId = recetaId,
-                    token = token,
-                    onComentarioAgregado = recargarComentarios
-                )
+
+                // Solo mostrar AgregarComentario si el usuario está autenticado
+                if (isAuthenticated) {
+                    AgregarComentario(
+                        recetaId = recetaId,
+                        token = token,
+                        onComentarioAgregado = recargarComentarios
+                    )
+                } else {
+                    // Mostrar mensaje para usuarios no autenticados
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFF5F5F5)
+                        ),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Inicia sesión para agregar comentarios",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    // Usar el contexto obtenido anteriormente
+                                    val intent = Intent(context, LoginActivity::class.java)
+                                    context.startActivity(intent)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF409448)
+                                )
+                            ) {
+                                Text("Iniciar sesión", color = Color.White)
+                            }
+                        }
+                    }
+                }
+
                 ListaComentariosAPI(comentarioResponse = comentarioResponse)
             }
         }
@@ -291,7 +335,11 @@ fun RecetaTitulo(nombre: String) {
 }
 
 @Composable
-fun RecetaUtility(receta: RecetaDetalle? = null, estadisticas: EstadisticasComentarios? = null) {
+fun RecetaUtility(
+    receta: RecetaDetalle? = null,
+    estadisticas: EstadisticasComentarios? = null,
+    isAuthenticated: Boolean = false
+) {
     var isFavorite by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val retrofit = RetrofitServiceFactory.makeRetrofitService()
@@ -305,40 +353,105 @@ fun RecetaUtility(receta: RecetaDetalle? = null, estadisticas: EstadisticasComen
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = {
-                coroutineScope.launch {
-                    isFavorite = !isFavorite
-                    try {
-                        receta?.let {
-                            if (isFavorite) {
-                                retrofit.addToList("Bearer $token", AddToListRequest(it.id))
-                            } else {
-                                retrofit.removeFromList("Bearer $token", it.id)
+        // Solo mostrar el botón de favoritos si está autenticado
+        if (isAuthenticated) {
+            IconButton(
+                onClick = {
+                    coroutineScope.launch {
+                        isFavorite = !isFavorite
+                        try {
+                            receta?.let {
+                                if (isFavorite) {
+                                    retrofit.addToList("Bearer $token", AddToListRequest(it.id))
+                                } else {
+                                    retrofit.removeFromList("Bearer $token", it.id)
+                                }
+                                Toast.makeText(
+                                    context,
+                                    if (isFavorite) "Añadido a favoritos" else "Eliminado de favoritos",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
+                        } catch (e: Exception) {
+                            isFavorite = !isFavorite
                             Toast.makeText(
                                 context,
-                                if (isFavorite) "Añadido a favoritos" else "Eliminado de favoritos",
+                                "Error: ${e.message}",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
-                    } catch (e: Exception) {
-                        isFavorite = !isFavorite
-                        Toast.makeText(
-                            context,
-                            "Error: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
                     }
                 }
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Agregar a favoritos",
+                    tint = if (isFavorite) Color(0xFF409448) else Color.Black,
+                    modifier = Modifier.size(24.dp)
+                )
             }
+        } else {
+            // Spacer para mantener el layout equilibrado
+            Spacer(modifier = Modifier.width(48.dp))
+        }
+
+        // Mostrar promedio de valoraciones como estrellas
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                contentDescription = if (isFavorite) "Quitar de favoritos" else "Agregar a favoritos",
-                tint = if (isFavorite) Color(0xFF409448) else Color.Black,
-                modifier = Modifier.size(24.dp)
-            )
+            if (estadisticas != null && estadisticas.total_valoraciones > 0) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(5) { index ->
+                        val starIndex = index + 1
+                        Icon(
+                            imageVector = when {
+                                starIndex <= estadisticas.promedio_valoracion.toInt() -> Icons.Default.Star
+                                starIndex == estadisticas.promedio_valoracion.toInt() + 1 &&
+                                        estadisticas.promedio_valoracion % 1 >= 0.5 -> Icons.Default.StarHalf
+                                else -> Icons.Default.StarBorder
+                            },
+                            contentDescription = null,
+                            tint = if (starIndex <= estadisticas.promedio_valoracion ||
+                                (starIndex == estadisticas.promedio_valoracion.toInt() + 1 &&
+                                        estadisticas.promedio_valoracion % 1 >= 0.5)) {
+                                Color(0xFFFFC107)
+                            } else {
+                                Color.Gray
+                            },
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = "${String.format("%.1f", estadisticas.promedio_valoracion)} (${estadisticas.total_valoraciones})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(5) { _ ->
+                        Icon(
+                            imageVector = Icons.Default.StarBorder,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = "Sin valoraciones",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
 
         Text(
