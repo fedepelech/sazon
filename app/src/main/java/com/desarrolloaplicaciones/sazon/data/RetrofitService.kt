@@ -112,6 +112,12 @@ interface RetrofitService {
 
 
 
+    @POST("/api/recetas/{recetaId}/videos/upload")
+    suspend fun subirVideoReceta(
+        @Path("recetaId") recetaId: String,
+        @Header("Authorization") token: String,
+        @Body video: video,
+    ): Response<CrearRecetaResponse>
 }
 
 object RetrofitServiceFactory {

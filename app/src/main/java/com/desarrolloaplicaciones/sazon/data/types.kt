@@ -274,3 +274,8 @@ data class ImagenDetalle(
     val es_principal: Boolean,
     val fecha_subida: String
 )
+
+data class video(
+    val url_video: String,
+    val nombre_archivo: String
+)
