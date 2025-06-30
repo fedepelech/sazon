@@ -42,6 +42,10 @@ import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
 import com.desarrolloaplicaciones.sazon.data.UsuarioResponse
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.foundation.layout.Arrangement
+
 
 class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -173,21 +177,88 @@ fun MenuItem(icon: ImageVector, text: String, onClick: () -> Unit) {
 @Composable
 fun BottomNavigationBar() {
     val context = LocalContext.current
+
+    // Verificar si el usuario está autenticado
+    val isAuthenticated = !TokenManager.getAccessToken().isNullOrEmpty()
+
     BottomAppBar(
-        containerColor = Color(0xFFFDF5ED),
-        tonalElevation = 4.dp,
-        contentPadding = PaddingValues(horizontal = 24.dp),
+        containerColor = Color.White,
+        contentColor = Color.Gray,
+        modifier = Modifier.height(80.dp)
     ) {
-        IconButton(onClick = {context.startActivity(Intent(context, HomeActivity::class.java))}) {
-            Icon(Icons.Default.Home, contentDescription = "Inicio")
-        }
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = {context.startActivity(Intent(context, CrearRecetaActivity::class.java))}) {
-            Icon(Icons.Default.AddCircle, contentDescription = "Agregar")
-        }
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = { context.startActivity(Intent(context, HomeActivity::class.java)) }) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Más")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isAuthenticated) {
+                Arrangement.SpaceEvenly
+            } else {
+                Arrangement.SpaceAround
+            },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Botón Home
+            IconButton(
+                onClick = {
+                    // Navegar a Home si no estamos ya aquí
+                    if (context !is HomeActivity) {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = Color(0xFF409448)
+                )
+            }
+
+            // Botón flotante central - SOLO mostrar si está autenticado
+            if (isAuthenticated) {
+                FloatingActionButton(
+                    onClick = {
+                        val intent = Intent(context, CrearRecetaActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    containerColor = Color(0xFF409448),
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar receta"
+                    )
+                }
+            }
+
+            // Botón Perfil (activo en esta pantalla)
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isAuthenticated) {
+                    IconButton(onClick = {
+                        // Ya estamos en ProfileActivity, no hacer nada o mostrar feedback
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(context, LoginActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Login,
+                            contentDescription = "Iniciar sesión",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -58,7 +58,7 @@ fun ForgotPasswordScreen() {
     // Obtener el contexto correctamente
     val context = LocalContext.current
 
-    var email by remember { mutableStateOf("fede@ejemplo.com") }
+    var email by remember { mutableStateOf("") }
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.White,
         unfocusedContainerColor = Color.White,
