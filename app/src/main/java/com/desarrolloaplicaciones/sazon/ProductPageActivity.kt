@@ -312,6 +312,7 @@ fun CarouselImagenes(imagenes: List<String>) {
 
 @Composable
 fun ImagenSazon() {
+    Spacer(modifier = Modifier.height(10.dp))
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxWidth()
@@ -319,9 +320,10 @@ fun ImagenSazon() {
         Image(
             painter = painterResource(id = R.drawable.logo2),
             contentDescription = "Logo",
-            modifier = Modifier.size(25.dp)
+            modifier = Modifier.size(40.dp)
         )
     }
+    Spacer(modifier = Modifier.height(10.dp))
 }
 
 @Composable
@@ -332,7 +334,7 @@ fun RecetaTitulo(nombre: String) {
     ) {
         Text(
             text = nombre,
-            color = Color(0xFF409448),
+            color = Color(0xFFD95B3A),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,

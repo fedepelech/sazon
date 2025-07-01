@@ -55,6 +55,10 @@ data class RecentRecipesWrapper(
     @SerializedName("ultimas_recetas") val recetas: List<RecentRecipeReturn>
 )
 
+data class RecentRecipesWrapperSaved(
+    @SerializedName("recetas_guardadas") val recetas: List<RecentRecipeReturn>
+)
+
 data class LoginRequest (
     val email: String,
     val password: String

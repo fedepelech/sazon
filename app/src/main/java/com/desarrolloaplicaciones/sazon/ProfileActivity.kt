@@ -175,7 +175,7 @@ fun MenuItem(icon: ImageVector, text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun BottomNavigationBar() {
+private fun BottomNavigationBar() {
     val context = LocalContext.current
 
     // Verificar si el usuario está autenticado

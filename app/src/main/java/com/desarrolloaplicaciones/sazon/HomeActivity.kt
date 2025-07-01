@@ -339,12 +339,6 @@ fun HomeScreen(
                                 )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Sazón",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = Color(0xFF4CAF50),
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

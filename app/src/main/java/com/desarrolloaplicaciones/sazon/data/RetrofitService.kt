@@ -62,7 +62,7 @@ interface RetrofitService {
     ): List<RecentRecipeReturn2>
 
     @GET("/api/lista")
-    suspend fun getRecetasGuardadas(@Header("Authorization") token: String): Response<RecentRecipesWrapper>;
+    suspend fun getRecetasGuardadas(@Header("Authorization") token: String): Response<RecentRecipesWrapperSaved>;
 
     @POST("/api/lista")
     suspend fun addToList(

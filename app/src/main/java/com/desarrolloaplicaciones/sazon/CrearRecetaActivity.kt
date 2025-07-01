@@ -47,7 +47,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.Image
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import coil.compose.rememberAsyncImagePainter
 import com.desarrolloaplicaciones.sazon.data.Ingrediente
 import com.desarrolloaplicaciones.sazon.data.TokenManager
@@ -485,6 +496,99 @@ fun CrearRecetaScreen() {
             }
 
 
+        }
+    }
+}
+
+@Composable
+private fun BottomNavigationBar() {
+    val context = LocalContext.current
+
+    // Verificar si el usuario está autenticado
+    val isAuthenticated = !TokenManager.getAccessToken().isNullOrEmpty()
+
+    BottomAppBar(
+        containerColor = Color.White,
+        contentColor = Color.Gray,
+        modifier = Modifier.height(80.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isAuthenticated) {
+                Arrangement.SpaceEvenly
+            } else {
+                Arrangement.SpaceAround
+            },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Botón Home
+            IconButton(
+                onClick = {
+                    // Navegar a Home si no estamos ya aquí
+                    if (context !is HomeActivity) {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = Color(0xFF409448)
+                )
+            }
+
+            // Botón flotante central
+            if (isAuthenticated) {
+                FloatingActionButton(
+                    onClick = {
+                        Toast.makeText(
+                            context,
+                            "Ya se está creando la receta",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    containerColor = Color(0xFF409448),
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar receta"
+                    )
+                }
+            }
+
+            // Botón Perfil (activo en esta pantalla)
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isAuthenticated) {
+                    IconButton(onClick = {
+                        val intent = Intent(context, ProfileActivity::class.java)
+                        context.startActivity(intent)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(context, LoginActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Login,
+                            contentDescription = "Iniciar sesión",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                }
+            }
         }
     }
 }

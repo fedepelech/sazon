@@ -1,6 +1,7 @@
 package com.desarrolloaplicaciones.sazon
 
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,12 +22,23 @@ import kotlinx.coroutines.launch
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.platform.LocalContext
 import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
 import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
 import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas3
 
 class RecetasGuardadasActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,13 +54,101 @@ class RecetasGuardadasActivity : ComponentActivity() {
     }
 }
 
+@Composable
+private fun BottomNavigationBar() {
+    val context = LocalContext.current
+
+    // Verificar si el usuario está autenticado
+    val isAuthenticated = !TokenManager.getAccessToken().isNullOrEmpty()
+
+    BottomAppBar(
+        containerColor = Color.White,
+        contentColor = Color.Gray,
+        modifier = Modifier.height(80.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isAuthenticated) {
+                Arrangement.SpaceEvenly
+            } else {
+                Arrangement.SpaceAround
+            },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Botón Home
+            IconButton(
+                onClick = {
+                    // Navegar a Home si no estamos ya aquí
+                    if (context !is HomeActivity) {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = Color(0xFF409448)
+                )
+            }
+
+            // Botón flotante central - SOLO mostrar si está autenticado
+            if (isAuthenticated) {
+                FloatingActionButton(
+                    onClick = {
+                        val intent = Intent(context, CrearRecetaActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    containerColor = Color(0xFF409448),
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar receta"
+                    )
+                }
+            }
+
+            // Botón Perfil (activo en esta pantalla)
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isAuthenticated) {
+                    IconButton(onClick = {
+                        val intent = Intent(context, ProfileActivity::class.java)
+                        context.startActivity(intent)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(context, LoginActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Login,
+                            contentDescription = "Iniciar sesión",
+                            tint = Color(0xFF409448)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun RecetasGuardadasScreen() {
     Scaffold(
         bottomBar = { BottomNavigationBar() }
     ) { innerPadding ->
-        //var recetas by remember { mutableStateOf<List<RecetaModel>>(emptyList()) }
         val scope = rememberCoroutineScope()
         var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
         var cargando by remember { mutableStateOf(false) }
@@ -58,12 +158,10 @@ fun RecetasGuardadasScreen() {
         LaunchedEffect(true) {
             scope.launch {
                 try {
-                    /*val recetasbase = retrofitService.getRecentRecipes().sortedBy { it.nombre }
-                    recetas = completarImagenesRecetas(retrofitService, recetasbase)*/
                     cargando = true
                     val recetasbase =
                         retrofitService.getRecetasGuardadas("Bearer $token").body()
-                    recetas = recetasbase?.let { completarImagenesRecetas(retrofitService, it) }!!
+                    recetas = recetasbase?.let { completarImagenesRecetas3(retrofitService, it) }!!
                     cargando = false
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -111,14 +209,14 @@ fun RecetasGuardadasScreen() {
                     }
                 } else {
                     items(recetas) { receta ->
-                        RecetaCard(
-                            titulo = receta.nombre,
-                            resenias = 11,
-                            estrellas = 3,
-                            ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                            imagenUrl = receta.imagenUrl,
-                            recetaId = receta.id
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp) // Ajuste igual que MisRecetasActivity
+                        ) {
+                            RecipeCard(receta)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
 
