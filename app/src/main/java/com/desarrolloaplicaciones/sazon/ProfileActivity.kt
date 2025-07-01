@@ -63,13 +63,23 @@ class ProfileActivity : ComponentActivity() {
 
 @Composable
 fun PerfilScreen() {
+    val context = LocalContext.current
+
+    // Validar existencia del token antes de proceder
+    val accessToken = TokenManager.getAccessToken()
+    if (accessToken.isNullOrEmpty()) {
+        // Si no existe token, redirigir al LoginActivity
+        context.startActivity(Intent(context, LoginActivity::class.java))
+        return
+    }
+
     val userId = TokenManager.getUserId()
     if (userId != null) {
         println("User ID: $userId")
     } else {
         println("No se pudo obtener el userId del token")
     }
-    val context = LocalContext.current
+
     var usuario by remember { mutableStateOf<UsuarioResponse?>(null) }
     val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
     val scope = rememberCoroutineScope()

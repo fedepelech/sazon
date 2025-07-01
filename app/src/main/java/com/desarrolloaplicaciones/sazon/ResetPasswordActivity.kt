@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.desarrolloaplicaciones.sazon.ui.theme.SazonBackground
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonRed
 import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
 
@@ -81,12 +82,12 @@ fun ResetPasswordScreen(modifier: Modifier = Modifier, email: String) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(SazonBackground) // Added background color
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-    Image(
+        Image(
             painter = painterResource(id = R.drawable.logo2),
             contentDescription = stringResource(id = R.string.sazonlogo),
             modifier = Modifier
