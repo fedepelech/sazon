@@ -97,7 +97,7 @@ fun PerfilScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFDF5ED)),
+            .background(Color(0xFFFDF7EB)),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
@@ -123,7 +123,7 @@ fun PerfilScreen() {
                     TokenManager.clearCredentials();
                     context.startActivity(Intent(context, LoginActivity::class.java));
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A9440)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,10 +177,10 @@ fun MenuItem(icon: ImageVector, text: String, onClick: () -> Unit) {
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(32.dp),
-            tint = Color(0xFFD84F2A)
+            tint = Color(0xFF3A9440)
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Text(text, color = Color(0xFFD84F2A), fontWeight = FontWeight.Bold, fontSize = 25.sp)
+        Text(text, color = Color(0xFF3A9440), fontWeight = FontWeight.Bold, fontSize = 25.sp)
     }
 }
 

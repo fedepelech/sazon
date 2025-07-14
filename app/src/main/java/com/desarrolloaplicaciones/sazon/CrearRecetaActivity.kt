@@ -41,6 +41,7 @@ import com.desarrolloaplicaciones.sazon.data.TiposReceta
 import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas
 import kotlinx.coroutines.CoroutineScope
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -104,7 +105,7 @@ fun CrearRecetaScreen() {
     var descripcion by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    val unidades = listOf("ml", "gr", "un")
+    val unidades = listOf("ml", "gr", "u")
     var ingredientes by remember { mutableStateOf(listOf(IngredienteInput())) }
     var ingredientesDisponibles by remember { mutableStateOf<List<Ingrediente>>(emptyList()) }
     var pasos by remember { mutableStateOf(listOf(PasoInput())) }
@@ -622,6 +623,24 @@ fun guardarReceta(
     imagenes: List<Uri>
 ) {
     val categoria = categorias.find { it.nombre == categoriaSeleccionada }
+    Log.e("test","test")
+    Log.e("test","test")
+    if (categoriaSeleccionada.isBlank() || titulo.isBlank() || descripcion.isBlank()
+        || dificultadSeleccionada.isBlank() || ingredientes.isEmpty() || pasos.isEmpty()) {
+        Toast.makeText(context, "Debes completar todos los campos, solo las imagenes y el video son opcionales", Toast.LENGTH_SHORT).show()
+        return
+    }
+    // Validar ingredientes (ninguno sea el default vacío)
+    if (ingredientes.any { it.nombre.isBlank() && it.cantidad.isBlank() && it.unidad == "gr" }) {
+        Toast.makeText(context, "No puede haber ingredientes incompletos", Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    // Validar pasos (ninguno sea el default vacío)
+    if (pasos.any { it.descripcion.isBlank() }) {
+        Toast.makeText(context, "No puede haber pasos vacíos", Toast.LENGTH_SHORT).show()
+        return
+    }
     if (categoria != null) {
         val recetaPost = RecetaPost(
             nombre = titulo,

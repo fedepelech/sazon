@@ -97,7 +97,7 @@ fun MisRecetasScreen() {
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color(0xFFD84F2A))
+                CircularProgressIndicator(color = Color(0xFF3A9440))
             }
         } else {
             Box(
@@ -123,7 +123,7 @@ fun MisRecetasScreen() {
                                 "Mis Recetas",
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFD84F2A)
+                                color = Color(0xFF3A9440)
                             )
                             Spacer(modifier = Modifier.height(24.dp))
                         }
