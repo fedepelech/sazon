@@ -65,7 +65,7 @@ fun ChangePassScreen() {
     var confirmacion by remember { mutableStateOf("") }
     val context = LocalContext.current
     val user_id = TokenManager.getUserId()
-    var email = ""
+    var email by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         try {
@@ -142,7 +142,6 @@ fun ChangePassScreen() {
                             val response = retrofitService.recoverPasswordValidate(request)
                             if (response.isSuccessful) {
                                 Log.d("API", "Contraseña cambiada exitosamente")
-                                Toast.makeText(context, "Contraseña cambiada exitosamente", Toast.LENGTH_SHORT).show()
                                 TokenManager.clearCredentials()
                                 context.startActivity(Intent(context, LoginActivity::class.java));
                             } else {
