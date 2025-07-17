@@ -120,8 +120,11 @@ fun PerfilScreen() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Button(
                 onClick = {
-                    TokenManager.clearCredentials();
-                    context.startActivity(Intent(context, LoginActivity::class.java));
+                    TokenManager.clearCredentials()
+                    val intent = Intent(context, LoginActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    context.startActivity(intent)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),
                 shape = RoundedCornerShape(50),
@@ -129,6 +132,7 @@ fun PerfilScreen() {
                     .fillMaxWidth()
                     .padding(horizontal = 32.dp)
             ) {
+                
                 Text("Cerrar sesión", color = Color.White)
             }
             Spacer(modifier = Modifier.height(16.dp))

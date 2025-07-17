@@ -253,14 +253,14 @@ fun RecetasUsuarioScreen() {
                     }
                 } else {
                     items(recetas) { receta ->
-                        RecetaUsuarioCard(
-                            titulo = receta.nombre,
-                            resenias = 11,
-                            estrellas = 3,
-                            ingredientes = listOf("Ingrediente 1", "Ingrediente 2"),
-                            imagenUrl = receta.imagenUrl,
-                            recetaId = receta.id
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp) // Limitar ancho con márgenes
+                        ) {
+                            RecipeCard(receta)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
