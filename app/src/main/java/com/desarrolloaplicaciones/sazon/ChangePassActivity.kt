@@ -38,6 +38,8 @@ import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import android.widget.Toast
+
 
 class ChangePassActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +65,7 @@ fun ChangePassScreen() {
     var confirmacion by remember { mutableStateOf("") }
     val context = LocalContext.current
     val user_id = TokenManager.getUserId()
-    var email = ""
+    var email by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         try {
@@ -112,16 +114,19 @@ fun ChangePassScreen() {
             Button(
                 onClick = { if (codigo.isBlank()) {
                     Log.e("Validación", "El código no puede estar vacío")
+                    Toast.makeText(context, "El código no puede estar vacío", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                     if (nuevaClave != confirmacion) {
                         Log.e("Validación", "Las contraseñas no coinciden")
+                        Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
                     if (nuevaClave.isBlank() || confirmacion.isBlank()) {
                         Log.e("Validación", "Las contraseñas no pueden estar vacías")
+                        Toast.makeText(context, "Las contraseñas no pueden estar vacías", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
@@ -146,7 +151,7 @@ fun ChangePassScreen() {
                             Log.e("API", "Excepción al validar clave: ${e.message}")
                         }
                     } },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A9440)),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,7 +271,7 @@ fun ChangePassBody(codigo: String,
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Cambiar contraseña", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD84F2A))
+            Text("Cambiar contraseña", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A9440))
             Text("Se ha enviado un codigo al correo registrado", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.height(24.dp))
             Row(

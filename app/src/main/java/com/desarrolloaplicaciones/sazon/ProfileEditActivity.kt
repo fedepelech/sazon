@@ -179,7 +179,7 @@ fun ProfileEditBodySection() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Mi cuenta", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD84F2A))
+            Text("Mi cuenta", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A9440))
             Spacer(modifier = Modifier.height(24.dp))
 
             if (email != null) {
@@ -203,7 +203,7 @@ fun ProfileEditBodySection() {
                 )
                 Button(
                     onClick = { context.startActivity(Intent(context, ChangePassActivity::class.java)) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84F2A))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A9440))
                 ) {
                     Text("Editar", color = Color.White)
                 }
