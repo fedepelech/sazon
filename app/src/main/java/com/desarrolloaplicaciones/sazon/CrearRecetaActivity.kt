@@ -284,7 +284,7 @@ fun CrearRecetaScreen() {
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // TextField editable para el nombre del ingrediente (sin dropdown)
+
                         OutlinedTextField(
                             value = ingrediente.nombre ?: "",
                             onValueChange = { newNombre ->
@@ -293,7 +293,7 @@ fun CrearRecetaScreen() {
                                 }
                             },
                             label = { Text("Ingrediente") },
-                            modifier = Modifier.width(160.dp)
+                            modifier = Modifier.width(160.dp).weight(0.4f)
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
@@ -306,8 +306,9 @@ fun CrearRecetaScreen() {
                                     it[index] = it[index].copy(cantidad = newValue)
                                 }
                             },
-                            label = { Text("Cant") },
-                            modifier = Modifier.width(80.dp)
+                            label = { Text("Cant", fontSize = 12.sp) },
+                            modifier = Modifier.width(80.dp).weight(0.2f)
+
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
@@ -328,7 +329,7 @@ fun CrearRecetaScreen() {
                                 colors = ExposedDropdownMenuDefaults.textFieldColors(),
                                 modifier = Modifier
                                     .menuAnchor()
-                                    .width(90.dp)
+                                    .width(90.dp).weight(0.2f)
                             )
 
                             ExposedDropdownMenu(
@@ -487,7 +488,6 @@ fun CrearRecetaScreen() {
                         Button(
                             modifier = Modifier.fillMaxWidth(0.93f),
                             onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, link, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope, context, imagenes = imagenesSeleccionadas) },
-                            //onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope) },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF409448))
                         ) {
                             Text("Guardar", color = Color.White)
@@ -630,13 +630,11 @@ fun guardarReceta(
         Toast.makeText(context, "Debes completar todos los campos, solo las imagenes y el video son opcionales", Toast.LENGTH_SHORT).show()
         return
     }
-    // Validar ingredientes (ninguno sea el default vacío)
     if (ingredientes.any { it.nombre.isBlank() && it.cantidad.isBlank() && it.unidad == "gr" }) {
         Toast.makeText(context, "No puede haber ingredientes incompletos", Toast.LENGTH_SHORT).show()
         return
     }
 
-    // Validar pasos (ninguno sea el default vacío)
     if (pasos.any { it.descripcion.isBlank() }) {
         Toast.makeText(context, "No puede haber pasos vacíos", Toast.LENGTH_SHORT).show()
         return
@@ -680,7 +678,6 @@ fun guardarReceta(
                             println("Imagen subida: ${imagenResponse.code()}")
                         }
 
-                        // Show success Toast and redirect to MisRecetasActivity
                         Toast.makeText(context, "Receta guardada con éxito", Toast.LENGTH_LONG)
                             .show()
                         val intent = Intent(context, MisRecetasActivity::class.java)

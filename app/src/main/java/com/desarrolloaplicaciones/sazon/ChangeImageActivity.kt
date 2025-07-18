@@ -1,6 +1,8 @@
 package com.desarrolloaplicaciones.sazon
 
+
 import android.app.Activity
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,9 +21,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.*
@@ -29,16 +37,28 @@ import com.desarrolloaplicaciones.sazon.ui.theme.SazonTheme
 import kotlinx.coroutines.launch
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import com.desarrolloaplicaciones.sazon.data.RecetaConImagen
+import com.desarrolloaplicaciones.sazon.data.RetrofitService
+import com.desarrolloaplicaciones.sazon.data.RetrofitServiceFactory
 import com.desarrolloaplicaciones.sazon.data.TokenManager
+import com.desarrolloaplicaciones.sazon.data.completarImagenesRecetas3
+import kotlinx.coroutines.CoroutineScope
 
-class ProfileEditActivity : ComponentActivity() {
+class ChangeImageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -46,7 +66,7 @@ class ProfileEditActivity : ComponentActivity() {
 
 
         setContent {
-            ProfileEditScreen()
+            ChangeImageScreen()
         }
     }
 }
@@ -143,7 +163,7 @@ private fun BottomNavigationBar() {
 
 
 @Composable
-fun ProfileEditScreen() {
+fun ChangeImageScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -153,8 +173,9 @@ fun ProfileEditScreen() {
         Column (horizontalAlignment = Alignment.CenterHorizontally){
             SazonHeader()
         }
+
         Column {
-            ProfileEditBodySection()
+            ChangeImageBodySection()
             Spacer(modifier = Modifier.height(32.dp))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -165,11 +186,36 @@ fun ProfileEditScreen() {
 }
 
 @Composable
-fun ProfileEditBodySection() {
+fun ChangeImageBodySection() {
     val context = LocalContext.current
     val activity = context as? Activity
-    val nombre = activity?.intent?.getStringExtra("nombre")
-    val email = activity?.intent?.getStringExtra("email")
+    var imagen by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
+    val user_id = TokenManager.getUserId()
+    val imagenesSeleccionadas = remember { mutableStateListOf<Uri>() }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imagenesSeleccionadas.clear()
+        uri?.let { imagenesSeleccionadas.add(it) }
+    }
+
+
+    LaunchedEffect(true) {
+        scope.launch {
+            try {
+
+                val usuario = user_id?.let { retrofitService.obtenerUsuario(it) }
+                usuario?.imagenesPerfil?.imagenes?.lastOrNull()?.let {
+                    imagen = it.url
+                    println(imagen)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -180,85 +226,110 @@ fun ProfileEditBodySection() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Mi cuenta", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A9440))
+            Text("Cambiar Imagen de Perfil", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3A9440))
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (email != null) {
-                CustomTextField(label = "Email", value = email, keyboardType = KeyboardType.Email, enabled = false)
-            }
-            if (nombre != null) {
-                CustomTextField(label = "Alias", value = nombre, enabled = false)
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = "**********",
-                    onValueChange = {},
-                    enabled = false,
-                    label = { Text("Contraseña") },
+            if (imagen.isNullOrEmpty()) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Foto de perfil por defecto",
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                    singleLine = true
+                        .size(150.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.Black, CircleShape),
+                    tint = Color.Gray
                 )
-                Button(
-                    onClick = { context.startActivity(Intent(context, ChangePassActivity::class.java)) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A9440))
-                ) {
-                    Text("Editar", color = Color.White)
-                }
+            } else {
+                AsyncImage(
+                    model = imagen,
+                    contentDescription = "Imagen de perfil",
+                    modifier = Modifier
+                        .size(150.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.Black, CircleShape),
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = { context.startActivity(Intent(context, ChangeImageActivity::class.java)) },
+                onClick = { launcher.launch("image/*") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A9440))
             ) {
-                Text("Cambiar Imagen de Perfil", color = Color.White, modifier = Modifier.weight(1f),
+                Text("Seleccionar Imagen", color = Color.White, modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center)
             }
-
             Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                if (imagenesSeleccionadas.isNotEmpty()) {
+                    Text(
+                        text = "Imagen Seleccionada",
+                        color = Color.Gray
+                    )
+                    Button(
+                        onClick = {
+                            if (user_id != null) {
+                                cargarImagen(retrofitService,scope, context, imagenes = imagenesSeleccionadas,user_id)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A9440))
+                    ) {
+                        Text("Actualizar Imagen", color = Color.White, modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center)
+                    }
+                } else {
+                    Text(
+                        text = "No se seleccionó imagen",
+                        color = Color.Gray
+                    )
+                }
+            }
         }
     }
 }
 
 
-@Composable
-fun CustomTextField(label: String, value: String, keyboardType: KeyboardType = KeyboardType.Text, enabled: Boolean, onValueChange: (String) -> Unit = {}) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        enabled = enabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType),
-        singleLine = true
-    )
-}
-
-@Composable
-fun SazonHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.logo2),
-            contentDescription = stringResource(id = R.string.sazonlogo),
-            modifier = Modifier.size(125.dp)
-        )
+fun cargarImagen(
+    retrofitService: RetrofitService,
+    scope: CoroutineScope,
+    context: Context,
+    imagenes: List<Uri>,
+    usuarioId: String
+){
+    scope.launch{
+        try {
+            val token = TokenManager.getAccessToken()
+            imagenes.forEach { uri ->
+                val part = crearParteImagen(uri, context)
+                val imagenResponse =
+                    retrofitService.subirImagenUsuario(usuarioId, part, "Bearer $token")
+                println("Imagen subida: ${imagenResponse.code()}")
+            }
+            Toast.makeText(context, "Imagen de perfil actualizada con exito", Toast.LENGTH_LONG)
+                .show()
+            val intent = Intent(context, ProfileActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }
+        catch (e: Exception){
+            Toast.makeText(
+                context,
+                "Error al subir la imagen",
+                Toast.LENGTH_LONG
+            ).show()
+            e.printStackTrace()
+        }
     }
 }
 
 
+
+
 @Preview(showBackground = true)
 @Composable
-fun ProfileEditScreenPreview() {
+fun CHangeImageScreenPreview() {
     MaterialTheme {
         ProfileEditScreen()
     }

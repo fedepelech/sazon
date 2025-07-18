@@ -60,6 +60,7 @@
         <activity android:name=".ChangePassActivity" />
         <activity android:name=".ProductPageActivity" />
         <activity android:name=".CrearRecetaActivity" />
+        <activity android:name=".ChangeImageActivity" />
     </application>
 
 </manifest>

@@ -108,7 +108,7 @@ data class UsuarioResponse(
     val nombre: String,
     val email: String,
     @SerializedName("fecha_registro") val fechaRegistro: String,
-    @SerializedName("imagen_principal") val imagenPrincipal: String?, // Puede ser null
+    @SerializedName("imagen_principal") val imagenPrincipal: ImagenUsuario,
     @SerializedName("imagenes_perfil") val imagenesPerfil: ImagenesPerfil,
     val estadisticas: EstadisticasUsuario
 )
@@ -116,6 +116,13 @@ data class UsuarioResponse(
 data class ImagenesPerfil(
     val total: Int,
     val imagenes: List<Imagen>
+)
+
+data class ImagenUsuario(
+    val id: String,
+    val url: String,
+    @SerializedName("nombre_archivo") val nombreArchivo: String,
+    @SerializedName("fecha_subida") val fechaSubida: String
 )
 
 data class EstadisticasUsuario(

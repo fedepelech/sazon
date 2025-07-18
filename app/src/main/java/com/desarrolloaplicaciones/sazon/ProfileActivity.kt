@@ -45,6 +45,7 @@ import com.desarrolloaplicaciones.sazon.data.UsuarioResponse
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.foundation.layout.Arrangement
+import coil.compose.AsyncImage
 
 
 class ProfileActivity : ComponentActivity() {
@@ -81,6 +82,7 @@ fun PerfilScreen() {
     }
 
     var usuario by remember { mutableStateOf<UsuarioResponse?>(null) }
+    var imagen by remember { mutableStateOf("") }
     val retrofitService = remember { RetrofitServiceFactory.makeRetrofitService() }
     val scope = rememberCoroutineScope()
 
@@ -88,6 +90,10 @@ fun PerfilScreen() {
         scope.launch {
             try {
                 usuario = retrofitService.obtenerUsuario("$userId")
+                usuario?.imagenesPerfil?.imagenes?.lastOrNull()?.let {
+                    imagen = it.url
+                    println(imagen)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -101,7 +107,7 @@ fun PerfilScreen() {
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            usuario?.let { HeaderSection(name = it.nombre, username = it.email) }
+            usuario?.let { HeaderSection(name = it.nombre, username = it.email, imagen = imagen) }
             Spacer(modifier = Modifier.height(32.dp))
             MenuItem(icon = Icons.Default.Book, text = "Mis recetas") {
                 context.startActivity(Intent(context, MisRecetasActivity::class.java))
@@ -142,7 +148,7 @@ fun PerfilScreen() {
 }
 
 @Composable
-fun HeaderSection(name: String, username: String) {
+fun HeaderSection(name: String, username: String, imagen: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,6 +157,7 @@ fun HeaderSection(name: String, username: String) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (imagen.isNullOrEmpty()){
         Icon(
             imageVector = Icons.Default.AccountCircle,
             contentDescription = "Foto de perfil",
@@ -160,6 +167,16 @@ fun HeaderSection(name: String, username: String) {
                 .border(2.dp, Color.Black, CircleShape),
             tint = Color.Gray
         )
+        }else{
+            AsyncImage(
+                model = imagen,
+                contentDescription = "Imagen de perfil",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, Color.Black, CircleShape),
+            )
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text("Hola $name!", fontSize = 20.sp, fontWeight = FontWeight.Bold)

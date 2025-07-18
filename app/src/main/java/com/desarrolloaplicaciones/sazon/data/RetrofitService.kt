@@ -113,6 +113,12 @@ interface RetrofitService {
                                   @Part imagen: MultipartBody.Part,
                                   @Header("Authorization") token: String,): Response<Unit>
 
+    @Multipart
+    @POST("/api/usuarios/{usuarioId}/imagenes/upload")
+    suspend fun subirImagenUsuario(@Path("usuarioId") usuarioId: String,
+                                  @Part imagen: MultipartBody.Part,
+                                  @Header("Authorization") token: String,): Response<Unit>
+
 
     @GET("/api/recetas/{recetaId}/videos")
     suspend fun obtenerVideosReceta(@Path("recetaId") recetaId: String): RecetaConVideosResponse

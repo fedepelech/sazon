@@ -69,7 +69,6 @@ class MisRecetasActivity : ComponentActivity() {
 
 @Composable
 fun MisRecetasScreen() {
-    //var recetas by remember { mutableStateOf<List<RecentRecipeReturn>>(emptyList()) }
     var recetas by remember { mutableStateOf<List<RecetaConImagen>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -109,12 +108,12 @@ fun MisRecetasScreen() {
             ) {
                 LazyColumn(
                     modifier = Modifier
-                        .widthIn(max = 600.dp) // Limita el ancho de la pantalla al igual que HomeActivity
+                        .widthIn(max = 600.dp)
                         .fillMaxHeight()
                         .background(Color(0xFFFDF5ED))
-                        .padding(horizontal = 16.dp) // Agrega relleno lateral para centrar el contenido
+                        .padding(horizontal = 16.dp)
                 ) {
-                    // Encabezado
+
                     item {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             SazonHeader()
@@ -244,76 +243,7 @@ private fun BottomNavigationBar() {
     }
 }
 
-//@Composable
-//fun RecetaCard(
-//    titulo: String,
-//    resenias: Int,
-//    estrellas: Int,
-//    ingredientes: List<String>,
-//    imagenUrl: String?,
-//    recetaId: String
-//) {
-//    val token = TokenManager.getAccessToken()
-//    val painter = rememberAsyncImagePainter(
-//        ImageRequest.Builder(LocalContext.current)
-//            .data("$imagenUrl")
-//            .addHeader("Authorization", "Bearer $token")
-//            .build()
-//    )
-//    val context = LocalContext.current
-//    Row(
-//        modifier = Modifier
-//            .clickable {
-//                val intent = Intent(context, ProductPageActivity::class.java).apply {
-//                    putExtra("recetaId", recetaId)
-//                }
-//                context.startActivity(intent)
-//            }
-//            .fillMaxWidth()
-//            .background(Color(0xFFFDF5ED))
-//            .drawBehind {
-//                val strokeWidth = 1.dp.toPx()
-//                val y = size.height - strokeWidth / 2
-//                drawLine(
-//                    color = Color(0xFF4CAF50),
-//                    start = Offset(0f, y),
-//                    end = Offset(size.width, y),
-//                    strokeWidth = strokeWidth
-//                )
-//            }
-//            .padding(12.dp)
-//    ) {
-//        if (imagenUrl != null) {
-//            Image(
-//                painter = rememberAsyncImagePainter("$imagenUrl"),
-//                contentDescription = null,
-//                modifier = Modifier
-//                    .size(100.dp)
-//                    .clip(RoundedCornerShape(8.dp))
-//            )
-//        } else {
-//            Image(
-//                painter = painterResource(id = R.drawable.logo2),
-//                contentDescription = null,
-//                modifier = Modifier
-//                    .size(100.dp)
-//                    .clip(RoundedCornerShape(8.dp))
-//            )
-//        }
-//
-//        Spacer(modifier = Modifier.width(12.dp))
-//
-//        Column(modifier = Modifier.weight(1f)) {
-//            Text(
-//                text = titulo,
-//                fontSize = 22.sp,
-//                fontWeight = FontWeight.Bold,
-//                color = Color(0xFF388E3C)
-//            )
-//            Spacer(modifier = Modifier.height(4.dp))
-//        }
-//    }
-//}
+
 
 @Preview(showBackground = true)
 @Composable
