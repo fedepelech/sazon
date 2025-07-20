@@ -48,6 +48,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -60,6 +61,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import coil.compose.rememberAsyncImagePainter
 import com.desarrolloaplicaciones.sazon.data.Ingrediente
 import com.desarrolloaplicaciones.sazon.data.TokenManager
@@ -307,13 +309,14 @@ fun CrearRecetaScreen() {
                                 }
                             },
                             label = { Text("Cant", fontSize = 12.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.width(80.dp).weight(0.2f)
 
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        // Dropdown de unidades (igual que antes)
+                        // Dropdown de unidades
                         ExposedDropdownMenuBox(
                             expanded = unidadExpanded,
                             onExpandedChange = { unidadExpanded = !unidadExpanded }
