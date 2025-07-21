@@ -103,6 +103,7 @@ fun CrearRecetaScreen() {
     var categoriaSeleccionada by remember { mutableStateOf("") }
     var dificultadSeleccionada by remember { mutableStateOf("") }
     var ingredienteSeleccionado by remember { mutableStateOf("") }
+    var isGuardando by remember { mutableStateOf(false) }
     var titulo by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
@@ -490,10 +491,29 @@ fun CrearRecetaScreen() {
                     Box() {
                         Button(
                             modifier = Modifier.fillMaxWidth(0.93f),
-                            onClick = { guardarReceta(categorias,categoriaSeleccionada,titulo,descripcion, link, dificultadSeleccionada,ingredientes,pasos,retrofitService,scope, context, imagenes = imagenesSeleccionadas) },
+                            onClick = {
+                                isGuardando = true
+                                guardarReceta(
+                                    categorias,
+                                    categoriaSeleccionada,
+                                    titulo,
+                                    descripcion,
+                                    link,
+                                    dificultadSeleccionada,
+                                    ingredientes,
+                                    pasos,
+                                    retrofitService,
+                                    scope,
+                                    context,
+                                    imagenesSeleccionadas
+                                ) {
+                                    isGuardando = false
+                                }
+                            },
+                            enabled = !isGuardando,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF409448))
                         ) {
-                            Text("Guardar", color = Color.White)
+                            Text(if (isGuardando) "Guardando..." else "Guardar", color = Color.White)
                         }
                     }
                 }
@@ -542,7 +562,7 @@ private fun BottomNavigationBar() {
                 )
             }
 
-            // Botón flotante central
+
             if (isAuthenticated) {
                 FloatingActionButton(
                     onClick = {
@@ -562,7 +582,7 @@ private fun BottomNavigationBar() {
                 }
             }
 
-            // Botón Perfil (activo en esta pantalla)
+
             Box(
                 modifier = Modifier.size(48.dp),
                 contentAlignment = Alignment.Center
@@ -623,7 +643,8 @@ fun guardarReceta(
     retrofitService: RetrofitService,
     scope: CoroutineScope,
     context: Context,
-    imagenes: List<Uri>
+    imagenes: List<Uri>,
+    onFinish: () -> Unit
 ) {
     val categoria = categorias.find { it.nombre == categoriaSeleccionada }
     Log.e("test","test")
@@ -631,15 +652,18 @@ fun guardarReceta(
     if (categoriaSeleccionada.isBlank() || titulo.isBlank() || descripcion.isBlank()
         || dificultadSeleccionada.isBlank() || ingredientes.isEmpty() || pasos.isEmpty()) {
         Toast.makeText(context, "Debes completar todos los campos, solo las imagenes y el video son opcionales", Toast.LENGTH_SHORT).show()
+        onFinish()
         return
     }
     if (ingredientes.any { it.nombre.isBlank() && it.cantidad.isBlank() && it.unidad == "gr" }) {
         Toast.makeText(context, "No puede haber ingredientes incompletos", Toast.LENGTH_SHORT).show()
+        onFinish()
         return
     }
 
     if (pasos.any { it.descripcion.isBlank() }) {
         Toast.makeText(context, "No puede haber pasos vacíos", Toast.LENGTH_SHORT).show()
+        onFinish()
         return
     }
     if (categoria != null) {
@@ -692,6 +716,7 @@ fun guardarReceta(
                             "Error al obtener el ID de la receta",
                             Toast.LENGTH_LONG
                         ).show()
+                        onFinish()
                         println("No se pudo obtener el ID de la receta")
                     }
                 } else {
@@ -700,10 +725,12 @@ fun guardarReceta(
                         "Error al subir receta: ${response.code()}",
                         Toast.LENGTH_LONG
                     ).show()
+                    onFinish()
                     println("Error al subir receta: ${response.code()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                onFinish()
             }
         }
     }
